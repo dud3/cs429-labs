@@ -243,7 +243,7 @@ int isPositive(int x) {
  *   Rating: 2 
  */
 int leastBitPos(int x) {
-  return ((x ^ (x + ~0)) + 1) >> 1;
+  return (x & (~x + 1));
 }
 /*
  * trueFiveEighths - multiplies by 5/8 rounding toward 0,
