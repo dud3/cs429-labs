@@ -1,0 +1,2 @@
+btest.c: In function ‘main’:
+btest.c:528:9: warning: variable ‘errors’ set but not used [-Wunused-but-set-variable]
