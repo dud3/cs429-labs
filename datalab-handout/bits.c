@@ -255,9 +255,8 @@ int leastBitPos(int x) {
  *  Max ops: 25
  *  Rating: 4
  */
-int trueFiveEighths(int x)
-{
-    return 2;
+int trueFiveEighths(int x) {
+  return divpwr2(x, 3) + divpwr2(x, 1);
 }
 /* 
  * addOK - Determine if can compute x+y without overflow
