@@ -308,6 +308,12 @@ int ilog2(int x) {
  *   Rating: 4
  */
 unsigned float_i2f(int x) {
+    if (x == 0) {
+        return 0;
+    }
+    if (x == 0x80000000) {
+        return 0xCF000000;
+    }
   return 2;
 }
 /* 
