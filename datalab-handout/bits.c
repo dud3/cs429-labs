@@ -268,7 +268,10 @@ int trueFiveEighths(int x) {
  *   Rating: 3
  */
 int addOK(int x, int y) {
-  return 2;
+  int posAndNeg = x ^ y; // MSB equls 1 only when one is positive and the other is negative.
+  int bothPosNoOverflow = x | y | (x + y); // MSB equals 0 only when both are positive and no overflow happens.
+  int bothNegNoOverflow = x & y & (x + y); // MSB equals 1 only when both are negtive and no overflow happens.
+  return ((posAndNeg | ~bothPosNoOverflow | bothNegNoOverflow) >> 31) & 0x01;
 }
 /*
  * ilog2 - return floor(log base 2 of x), where x > 0
