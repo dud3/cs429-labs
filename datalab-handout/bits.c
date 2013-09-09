@@ -281,7 +281,22 @@ int addOK(int x, int y) {
  *   Rating: 4
  */
 int ilog2(int x) {
-  return 2;
+  int occur = !!(x >> 16);
+  int count = occur << 4;
+  x = ((~occur + 1) & (x >> 16)) | (~(~occur + 1) & x);
+  occur = !!(x >> 8);
+  count = count + (occur << 3);
+  x = ((~occur + 1) & (x >> 8)) | (~(~occur + 1) & x);
+  occur = !!(x >> 4);
+  count = count + (occur << 2);
+  x = ((~occur + 1) & (x >> 4)) | (~(~occur + 1) & x);
+  occur = !!(x >> 2);
+  count = count + (occur << 1);
+  x = ((~occur + 1) & (x >> 2)) | (~(~occur + 1) & x);
+  occur = !!(x >> 1);
+  count = count + occur;
+  x = ((~occur + 1) & (x >> 1)) | (~(~occur + 1) & x);
+  return count;
 }
 /* 
  * float_i2f - Return bit-level equivalent of expression (float) x
