@@ -256,7 +256,8 @@ int leastBitPos(int x) {
  *  Rating: 4
  */
 int trueFiveEighths(int x) {
-  return divpwr2(x, 3) + divpwr2(x, 1);
+  // printf("%u\n", (x >> 3) + (x >> 1));
+  return (x >> 3) + (x >> 1) + (x & (x >> 2) & 0x01) + (((x ^ (x >> 2)) | (x >> 1) | x) & (x >> 31) & 0x01);
 }
 /* 
  * addOK - Determine if can compute x+y without overflow
