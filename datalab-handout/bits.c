@@ -140,6 +140,7 @@ NOTES:
  *   Rating: 2
  */
 int getByte(int x, int n) {
+  // Right shift 8 * n bits and mask the least significant byte.
   return (x >> (n << 3)) & 0xFF;
 }
 /*
@@ -151,6 +152,7 @@ int getByte(int x, int n) {
  *   Rating: 3
  */
 int logicalShift(int x, int n) {
+  // Do arithmetic right shift and then mask the original bits.
   return (x >> n) & ~(((0x80 << 24) >> n) << 1);
 }
 /*
@@ -161,11 +163,16 @@ int logicalShift(int x, int n) {
  *   Rating: 4
  */
 int bitCount(int x) {
-  int temp = (0x33 << 24) + (0x33 << 16) + (0x33 << 8) + 0x33;
+  int temp = (0x33 << 24) + (0x33 << 16) + (0x33 << 8) + 0x33; // Auxillary mask.
+  // Count bits in pairs of two.
   x = x + ~((x >> 1) & ((0x55 << 24) + (0x55 << 16) + (0x55 << 8) + 0x55)) + 1;
+  // Count bits in pairs of four.
   x = (x & temp) + ((x >> 2) & temp);
+  // Count bits in pairs of eight.
   x = x + (x >> 4);
+  // Mask off intermediate count.
   x = x & ((0x0F << 24) + (0x0F << 16) + (0x0F << 8) + 0x0F);
+  // Sum up and shift right to get the answer.
   x = (x << 24) + (x << 16) + (x << 8) + x;
   x = x >> 24;
   return x;
@@ -178,6 +185,7 @@ int bitCount(int x) {
  *   Rating: 4
  */
 int bang(int x) {
+  // (x | (-x)) generates a leading zero only for one.
   return (~(x | (~x + 1)) >> 31) & 0x01;
 }
 /*
@@ -187,6 +195,7 @@ int bang(int x) {
  *   Rating: 1
  */
 int tmin(void) {
+  // Returns 0x80000000.
   return 0x80 << 24;
 }
 /*
@@ -199,7 +208,9 @@ int tmin(void) {
  *   Rating: 2
  */
 int fitsBits(int x, int n) {
+  // Number of left shifts to align the most significant bits.
   int move = 33 + ~n;
+  // Shift back and forth, should be the same number.
   return !(((x << move) >> move) ^ x) ;
 }
 /*
@@ -211,8 +222,9 @@ int fitsBits(int x, int n) {
  *   Rating: 2
  */
 int divpwr2(int x, int n) {
-    int incre = ((0x01 << n) + ~0x00) & (x >> 31);
-    return (x + incre) >> n;
+  // Arithmetically round up when it is a negtive number. In effect rounding toward zero.
+  int round = ((0x01 << n) + ~0x00) & (x >> 31);
+  return (x + round) >> n;
 }
 /*
  * negate - return -x
@@ -222,6 +234,7 @@ int divpwr2(int x, int n) {
  *   Rating: 2
  */
 int negate(int x) {
+  // Easy.
   return ~x + 1;
 }
 /*
@@ -232,6 +245,7 @@ int negate(int x) {
  *   Rating: 3
  */
 int isPositive(int x) {
+  // Be aware when x equals zero.
   return !((x >> 31) & 0x01) ^ (!x);
 }
 /*
@@ -243,6 +257,7 @@ int isPositive(int x) {
  *   Rating: 2
  */
 int leastBitPos(int x) {
+  // Easy.
   return (x & (~x + 1));
 }
 /*
@@ -256,8 +271,9 @@ int leastBitPos(int x) {
  *  Rating: 4
  */
 int trueFiveEighths(int x) {
-  // printf("%u\n", (x >> 3) + (x >> 1));
-  return (x >> 3) + (x >> 1) + (x & (x >> 2) & 0x01) + (((x ^ (x >> 2)) | (x >> 1) | x) & (x >> 31) & 0x01);
+  // Rounding toward zero.
+  int round = (x & (x >> 2) & 0x01) + (((x ^ (x >> 2)) | (x >> 1) | x) & (x >> 31) & 0x01);
+  return (x >> 3) + (x >> 1) + round;
 }
 /*
  * addOK - Determine if can compute x+y without overflow
@@ -281,21 +297,31 @@ int addOK(int x, int y) {
  *   Rating: 4
  */
 int ilog2(int x) {
-  int occur = !!(x >> 16);
-  int count = occur << 4;
+  int occur;
+  int count;
+  // Check in 16 bits scale.
+  occur = !!(x >> 16);
+  count = occur << 4;
+  // Mask x to be the corresponding part.
   x = ((~occur + 1) & (x >> 16)) | (~(~occur + 1) & x);
+  // Check in 8 bits scale.
   occur = !!(x >> 8);
   count = count + (occur << 3);
+  // Mask x to be the corresponding part.
   x = ((~occur + 1) & (x >> 8)) | (~(~occur + 1) & x);
+  // Check in 4 bits scale.
   occur = !!(x >> 4);
   count = count + (occur << 2);
+  // Mask x to be the corresponding part.
   x = ((~occur + 1) & (x >> 4)) | (~(~occur + 1) & x);
+  // Check in 2 bits scale.
   occur = !!(x >> 2);
   count = count + (occur << 1);
+  // Mask x to be the corresponding part.
   x = ((~occur + 1) & (x >> 2)) | (~(~occur + 1) & x);
+  // Check in 1 bit scale.
   occur = !!(x >> 1);
   count = count + occur;
-  x = ((~occur + 1) & (x >> 1)) | (~(~occur + 1) & x);
   return count;
 }
 /*
@@ -308,34 +334,39 @@ int ilog2(int x) {
  *   Rating: 4
  */
 unsigned float_i2f(int x) {
-    unsigned sign = 0;
-    unsigned exp = 0;
-    unsigned round = 0;
-    unsigned tmp = x;
-    unsigned frac;
-    if (!x) {
-        return 0;
+  unsigned sign = 0;
+  unsigned exp = 0;
+  unsigned round = 0;
+  unsigned tmp = x;
+  unsigned frac;
+  // Special case.
+  if (!x) {
+    return 0;
+  }
+  // Set sign bit.
+  if (x < 0) {
+    x = -x;
+    sign = 0x80000000;
+  }
+  // Shift to get the exponential.
+  while (1) {
+    tmp = x;
+    x = x << 1;
+    exp = exp + 1;
+    if (tmp & 0x80000000) {
+      break;
     }
-    if (x < 0) {
-        x = -x;
-        sign = 0x80000000;
-    }
-    while (1) {
-        tmp = x;
-        x = x << 1;
-        exp = exp + 1;
-        if (tmp & 0x80000000) {
-            break;
-        }
-    }
-    if (0x0100 < (x & 0x01FF)) {
-        round = 1;
-    }
-    if (0x0300 == (x & 0x03FF)) {
-        round = 1;
-    }
-    frac = x;
-    return sign + (frac >> 9) + ((159 - exp) << 23) + round;
+  }
+  // Typical rounding.
+  if (0x0100 < (x & 0x01FF)) {
+    round = 1;
+  }
+  // Rounding to even.
+  if (0x0300 == (x & 0x03FF)) {
+    round = 1;
+  }
+  frac = x;
+  return sign + (frac >> 9) + ((159 - exp) << 23) + round;
 }
 /*
  * float_twice - Return bit-level equivalent of expression 2*f for
@@ -349,14 +380,19 @@ unsigned float_i2f(int x) {
  *   Rating: 4
  */
 unsigned float_twice(unsigned uf) {
+  // Case infinity or NaN.
   if ((uf & 0x7F800000) == 0x7F800000 || !(uf & 0x7FFFFFFF)) {
-      return uf;
+    return uf;
   }
+  // Overflow to infinity.
   if ((uf & 0x7F800000) == 0x7F000000) {
-      return (uf & 0x80000000) | 0x7F800000;
+    return (uf & 0x80000000) | 0x7F800000;
   }
+  // Normalized input, no overflow.
   if (uf & 0x7F800000) {
-      return uf + 0x00800000;
+    return uf + 0x00800000;
   }
+  // Denormalized input.
   return (uf & 0x80000000) | uf << 1;
 }
+
