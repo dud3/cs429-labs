@@ -312,6 +312,7 @@ unsigned float_i2f(int x) {
     unsigned exp = 0;
     unsigned round = 0;
     unsigned tmp = x;
+    unsigned frac;
     if (!x) {
         return 0;
     }
@@ -333,7 +334,8 @@ unsigned float_i2f(int x) {
     if (0x0300 == (x & 0x03FF)) {
         round = 1;
     }
-    return sign + (((unsigned int) x) >> 9) + ((159 - exp) << 23) + round;
+    frac = x;
+    return sign + (frac >> 9) + ((159 - exp) << 23) + round;
 }
 /*
  * float_twice - Return bit-level equivalent of expression 2*f for
@@ -347,5 +349,14 @@ unsigned float_i2f(int x) {
  *   Rating: 4
  */
 unsigned float_twice(unsigned uf) {
-  return 2;
+  if ((uf & 0x7F800000) == 0x7F800000 || !(uf & 0x7FFFFFFF)) {
+      return uf;
+  }
+  if ((uf & 0x7F800000) == 0x7F000000) {
+      return (uf & 0x80000000) | 0x7F800000;
+  }
+  if (uf & 0x7F800000) {
+      return uf + 0x00800000;
+  }
+  return (uf & 0x80000000) | uf << 1;
 }
