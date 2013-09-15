@@ -172,9 +172,9 @@ int bitCount(int x) {
   x = x + (x >> 4);
   // Mask off intermediate count.
   x = x & ((0x0F << 24) + (0x0F << 16) + (0x0F << 8) + 0x0F);
-  // Sum up and shift right to get the answer.
-  x = (x << 24) + (x << 16) + (x << 8) + x;
-  x = x >> 24;
+  // Sum up and mask to get the answer.
+  x = (x >> 24) + (x >> 16) + (x >> 8) + x;
+  x = x & 0xFF;
   return x;
 }
 /*
