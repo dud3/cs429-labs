@@ -3,6 +3,8 @@
 #include <stdint.h>
 #include <string.h>
 
+#define BUFFER_SIZE 1024000
+
 // Convert 5-bit chunks into characters.
 char toCharRepresentation(uint8_t data) {
     if (data < 26) {
@@ -103,16 +105,16 @@ void freePtr(char* ptr) {
 
 int main(int argc, char** argv) {
     if (argc == 1) { // Encode.
-        uint8_t* data = (uint8_t*) calloc(1024000, sizeof(uint8_t));
-        char* str = encode(data, fread(data, sizeof(uint8_t), 1024000, stdin));
+        uint8_t* data = (uint8_t*) calloc(BUFFER_SIZE, sizeof(uint8_t));
+        char* str = encode(data, fread(data, sizeof(uint8_t), BUFFER_SIZE, stdin));
         printStr(str);
         freePtr(str);
         free(data);
     } else if (argc == 2 && !strcmp(argv[1], "-d")) { // Decode.
-        char* str = (char*) calloc(1024000, sizeof(char));
+        char* str = (char*) calloc(BUFFER_SIZE, sizeof(char));
         unsigned int dataLength;
         uint8_t* data;
-        fread(str, sizeof(char), 1024000, stdin);
+        fread(str, sizeof(char), BUFFER_SIZE, stdin);
         data = decode(str, &dataLength);
         fwrite(data, sizeof(uint8_t), dataLength, stdout);
         free(data);
