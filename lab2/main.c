@@ -104,13 +104,12 @@ void freePtr(char* ptr) {
 }
 
 int main(int argc, char** argv) {
-    if (argc == 1) { // Encode.
-        uint8_t* data = (uint8_t*) calloc(BUFFER_SIZE, sizeof(uint8_t));
-        char* str = encode(data, fread(data, sizeof(uint8_t), BUFFER_SIZE, stdin));
-        printStr(str);
-        freePtr(str);
-        free(data);
-    } else if (argc == 2 && !strcmp(argv[1], "-d")) { // Decode.
+    if (argc != 2) { // Print usage
+        printf("Usage: %s encode-filename | -d\n", argv[0]);
+        printf("\tSpecify -d to decode, or a file to encode.\n");
+        exit(0);
+    }
+    if (argc == 2 && !strcmp(argv[1], "-d")) { // Decode
         char* str = (char*) calloc(BUFFER_SIZE, sizeof(char));
         unsigned int dataLength;
         uint8_t* data;
@@ -119,10 +118,14 @@ int main(int argc, char** argv) {
         fwrite(data, sizeof(uint8_t), dataLength, stdout);
         free(data);
         free(str);
-    } else { // Print usage.
-        printf("Usage: %s [-d]\n", argv[0]);
-        printf("\tSpecify -d to decode, otherwise to encode.\n");
-        printf("\tUses stdin as input, stdout as output.\n");
+    } else { // Encode
+        FILE* f = fopen(argv[1], "r");
+        uint8_t* data = (uint8_t*) calloc(BUFFER_SIZE, sizeof(uint8_t));
+        char* str = encode(data, fread(data, sizeof(uint8_t), BUFFER_SIZE, f));
+        printStr(str);
+        freePtr(str);
+        free(data);
+        fclose(f);
     }
     return 0;
 }
