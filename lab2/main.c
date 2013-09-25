@@ -103,8 +103,9 @@ void decode(char* str) {
 
 int main(int argc, char** argv) {
     if (argc != 2) { // Print usage
-        printf("Usage: %s encode-filename | -d\n", argv[0]);
-        printf("\tSpecify -d to decode, or a file to encode.\n");
+        printf("Usage: %s [encode-filename | -d]\n", argv[0]);
+        printf("\tSpecify a filename to encode, writes to standard output.\n");
+        printf("\tSpecify flag -d to decode, reads from standard input, writes to standard output.\n");
         exit(0);
     }
     if (argc == 2 && !strcmp(argv[1], "-d")) { // Decode

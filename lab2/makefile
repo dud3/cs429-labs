@@ -17,3 +17,17 @@ main: $(objects)
 .PHONY: clean
 clean:
 	rm -rf main main.dSYM *.o
+test: main
+	./main four.txt > tmp
+	diff tmp four.5b
+	./main -d < four.5b > tmp
+	diff tmp four.txt
+	./main gettysburg.txt > tmp
+	diff tmp gettysburg.5b
+	./main -d < gettysburg.5b > tmp
+	diff tmp gettysburg.txt
+	./main smile.gif > tmp
+	diff tmp smile.5b
+	./main -d < smile.5b > tmp
+	diff tmp smile.gif
+	rm -f tmp
