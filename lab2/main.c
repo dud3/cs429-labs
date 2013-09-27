@@ -105,7 +105,9 @@ int main(int argc, char** argv) {
     if (argc != 2) { // Print usage
         printf("Usage: %s [encode-filename | -d]\n", argv[0]);
         printf("\tSpecify a filename to encode, writes to standard output.\n");
+        printf("\t\tExample: ./5bit four.txt > four.5b\n");
         printf("\tSpecify flag -d to decode, reads from standard input, writes to standard output.\n");
+        printf("\t\tExample: ./5bit -d < four.5b > four.txt\n");
         exit(0);
     }
     if (argc == 2 && !strcmp(argv[1], "-d")) { // Decode
