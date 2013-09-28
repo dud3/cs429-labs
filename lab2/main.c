@@ -108,7 +108,7 @@ int main(int argc, char** argv) {
         printf("Usage: %s [-d] < input > output\n", argv[0]);
         printf("  -d\tdecode, otherwise defaults to encode\n");
         printf("  Example:\n");
-        printf("    Encode: %s < four.5b > four.txt\n", argv[0]);
+        printf("    Encode: %s < four.txt > four.5b\n", argv[0]);
         printf("    Decode: %s -d < four.5b > four.txt\n", argv[0]);
         exit(0);
     }
