@@ -39,6 +39,9 @@ void convertFiveBytes(uint8_t* data, char* str) {
 
 // Encode
 void encode(uint8_t* orgData, unsigned int orgDataLength) {
+    if (!orgDataLength) { // If there is nothing to encode, return directly to avoid outputting a single new line
+        return;
+    }
     unsigned int padDataLength = (orgDataLength + 4) / 5 * 5; // Length of padded data. Align to 5 bytes
     unsigned int strLength = 8 * padDataLength / 5; // Length of padded string
     unsigned int cnt = 0;
@@ -55,20 +58,20 @@ void encode(uint8_t* orgData, unsigned int orgDataLength) {
     free(padData);
 }
 
-// Ignore invalid characters and convert them back into 5-bit chunks
-unsigned int parseInput(char* str) {
-    unsigned int cur = 0;
-    unsigned int ptr = 0;
-    while (str[ptr]) {
-        if ('A' <= str[ptr] && str[ptr] <= 'Z') {
-            str[cur++] = str[ptr++] - 'A';
-        } else if ('0' <= str[ptr] && str[ptr] <= '5') {
-            str[cur++] = str[ptr++] - '0' + 26;
-        } else {
-            ++ptr;
+// Ignore invalid characters and read into buffer
+unsigned int parseInput(char* str, unsigned int size, FILE* stream) {
+    unsigned int len = 0;
+    char c;
+    while (len < size && (c = getc(stream)) != EOF) {
+        if ('A' <= c && c <= 'Z') {
+            *str++ = c - 'A';
+            ++len;
+        } else if ('0' <= c && c <= '5') {
+            *str++ = c - '0' + 26;
+            ++len;
         }
     }
-    return cur; // Return the size of the string
+    return len;
 }
 
 // Convert 8 bytes of 5-bit chunks into 5 bytes of data
@@ -81,8 +84,7 @@ void convertEightChars(char* str, uint8_t* data) {
 }
 
 // Decode
-void decode(char* str) {
-    unsigned int strLength = parseInput(str); // Length of string
+void decode(char* str, unsigned int strLength) {
     unsigned int padStrLength = (5 * strLength + 7) / 8 * 8; // Length of padded string
     unsigned int cnt = 0;
     unsigned int dataLength = 5 * strLength / 8; // Actual length of data
@@ -99,32 +101,29 @@ void decode(char* str) {
 }
 
 #define ENCODE_BUF_SIZE 45 // A line consists of 72 characters = 360 bits of data = 45 bytes of data
-#define DECODE_BUF_SIZE 73 // Including \n
+#define DECODE_BUF_SIZE 72
 
 int main(int argc, char** argv) {
-    if (argc != 2) { // Print usage
-        printf("Usage: %s [encode-filename | -d]\n", argv[0]);
-        printf("\tSpecify a filename to encode, writes to standard output.\n");
-        printf("\t\tExample: ./5bit four.txt > four.5b\n");
-        printf("\tSpecify flag -d to decode, reads from standard input, writes to standard output.\n");
-        printf("\t\tExample: ./5bit -d < four.5b > four.txt\n");
+    if (!(argc == 1 || (argc == 2 && !strcmp(argv[1], "-d")))) { // Print usage
+        printf("Usage: %s [-d] < input > output\n", argv[0]);
+        printf("  -d\tdecode, otherwise defaults to encode\n");
+        printf("  Example:\n");
+        printf("    Encode: %s < four.5b > four.txt\n", argv[0]);
+        printf("    Decode: %s -d < four.5b > four.txt\n", argv[0]);
         exit(0);
     }
-    if (argc == 2 && !strcmp(argv[1], "-d")) { // Decode
-        char str[DECODE_BUF_SIZE + 1];
+    if (argc == 1) { // Encode
+        uint8_t data[ENCODE_BUF_SIZE];
+        while (!feof(stdin)) {
+            memset(data, 0, sizeof(data));
+            encode(data, fread(data, sizeof(uint8_t), ENCODE_BUF_SIZE, stdin));
+        }
+    } else { // Decode
+        char str[DECODE_BUF_SIZE];
         while (!feof(stdin)) {
             memset(str, 0, sizeof(str));
-            fread(str, sizeof(char), DECODE_BUF_SIZE, stdin);
-            decode(str);
+            decode(str, parseInput(str, DECODE_BUF_SIZE, stdin));
         }
-    } else { // Encode
-        FILE* f = fopen(argv[1], "r");
-        uint8_t data[ENCODE_BUF_SIZE];
-        while (!feof(f)) {
-            memset(data, 0, sizeof(data));
-            encode(data, fread(data, sizeof(uint8_t), ENCODE_BUF_SIZE, f));
-        }
-        fclose(f);
     }
     return 0;
 }
