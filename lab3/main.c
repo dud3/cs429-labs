@@ -56,14 +56,52 @@ void lookUp(const char* object, const char* property) {
     }
     printf("%s\n", pro->value);
 }
-    
-int main() {
-    saveIntoList("CDC6600", "number_registers", "24");
-    saveIntoList("CDC6600", "opcode_bits", "6");
-    saveIntoList("PDP11", "number_registers","8");
-    saveIntoList("PDP11", "opcode_bits", "4,8,10");
-    saveIntoList("IBM360", "number_registers", "16");
-    saveIntoList("IBM360", "opcode_bits", "8");
+
+#define BUF_LEN 1024
+
+void parseFact(FILE* file) {
+    char str[BUF_LEN];
+    char object[BUF_LEN];
+    char property[BUF_LEN];
+    char value[BUF_LEN];
+    char* colon;
+    char* equal;
+    if (!fgets(str, BUF_LEN, file)) {
+        return;
+    }
+    if (str[0] != 'F') {
+        return;
+    }
+    colon = strchr(str, ':');
+    equal = strchr(str, '=');
+    if (!colon || !equal) {
+        return;
+    }
+    memset(object, 0, sizeof(object));
+    memset(property, 0, sizeof(property));
+    memset(value, 0, sizeof(value));
+    strncpy(object, str + 1, colon - str - 1);
+    strncpy(property, colon + 1, equal - colon - 1);
+    strcpy(value, equal + 1);
+    printf("%s %s %s\n", object, property, value);
+}
+
+int main(int argc, char** argv) {
+    FILE* fact = fopen(argv[1], "r");
+    if (!fact) {
+        printf("Cannot open file %s\n", argv[1]);
+        exit(0);
+    }
+    while (!feof(fact)) {
+        parseFact(fact);
+        break;
+    }
+    // saveIntoList("CDC6600", "number_registers", "24");
+    // saveIntoList("CDC6600", "opcode_bits", "6");
+    // saveIntoList("PDP11", "number_registers","8");
+    // saveIntoList("PDP11", "opcode_bits", "4,8,10");
+    // saveIntoList("IBM360", "number_registers", "16");
+    // saveIntoList("IBM360", "opcode_bits", "8");
     lookUp("PDP11", "opcode_bits");
     return 0;
 }
