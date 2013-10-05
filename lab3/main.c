@@ -18,10 +18,10 @@ ObjectNode* objectHead = 0;
 
 void saveIntoList(const char* object, const char* property, const char* value) {
     ObjectNode* cur = objectHead;
-    while (cur && strcmp(cur->objectName, object)) {
+    while (cur && strcmp(cur->objectName, object)) { // Find insertion point
         cur = cur->next;
     }
-    if (!cur) {
+    if (!cur) { // Object does not exist
         cur = (ObjectNode*) malloc(sizeof(ObjectNode));
         cur->objectName = (char*) calloc(strlen(object) + 1, sizeof(char));
         strcpy(cur->objectName, object);
@@ -33,8 +33,8 @@ void saveIntoList(const char* object, const char* property, const char* value) {
         cur->property->next = 0;
         cur->next = objectHead;
         objectHead = cur;
-    } else {
-        PropertyNode* newProperty = (PropertyNode*) malloc(sizeof(PropertyNode));
+    } else { // Object exist
+        PropertyNode* newProperty = (PropertyNode*) malloc(sizeof(PropertyNode)); // Always create a new property
         newProperty->propertyName = (char*) calloc(strlen(property) + 1, sizeof(char));
         strcpy(newProperty->propertyName, property);
         newProperty->value = (char*) calloc(strlen(value) + 1, sizeof(char));
@@ -47,14 +47,33 @@ void saveIntoList(const char* object, const char* property, const char* value) {
 void lookUp(const char* object, const char* property) {
     ObjectNode* cur = objectHead;
     PropertyNode* pro;
-    while (cur && strcmp(cur->objectName, object)) {
+    while (cur && strcmp(cur->objectName, object)) { // Find object
         cur = cur->next;
     }
+    if (!cur) { // Object does not exist
+        printf("F %s: %s=unknown\n", object, property);
+        return;
+    }
     pro = cur->property;
-    while (pro && strcmp(pro->propertyName, property)) {
+    while (pro && strcmp(pro->propertyName, property)) { // Find property
         pro = pro->next;
     }
-    printf("%s\n", pro->value);
+    if (!pro) { // Property does not exist
+        printf("F %s: %s=unknown\n", object, property);
+    } else {
+        printf("F %s: %s=%s\n", object, property, pro->value);
+    }
+}
+
+void stripStr(char* str) {
+    char* cur = str;
+    while (*cur) {
+        if (*cur != ' ') {
+            *str++ = *cur;
+        }
+        ++cur;
+    }
+    *str = 0;
 }
 
 #define BUF_LEN 1024
@@ -64,37 +83,70 @@ void parseFact(FILE* file) {
     char object[BUF_LEN];
     char property[BUF_LEN];
     char value[BUF_LEN];
-    char* colon;
-    char* equal;
-    if (!fgets(str, BUF_LEN, file)) {
+    char* ptr;
+    if (!fgets(str, BUF_LEN, file) || str[0] != 'F') {
         return;
     }
-    if (str[0] != 'F') {
+    ptr = strtok(str + 1, ":");
+    if (!ptr) {
         return;
     }
-    colon = strchr(str, ':');
-    equal = strchr(str, '=');
-    if (!colon || !equal) {
+    strcpy(object, ptr);
+    stripStr(object);
+    ptr = strtok(0, "=");
+    if (!ptr) {
         return;
     }
-    memset(object, 0, sizeof(object));
-    memset(property, 0, sizeof(property));
-    memset(value, 0, sizeof(value));
-    strncpy(object, str + 1, colon - str - 1);
-    strncpy(property, colon + 1, equal - colon - 1);
-    strcpy(value, equal + 1);
-    printf("%s %s %s\n", object, property, value);
+    strcpy(property, ptr);
+    stripStr(property);
+    ptr = strtok(0, "\n");
+    if (!ptr) {
+        return;
+    }
+    strcpy(value, ptr);
+    stripStr(value);
+    saveIntoList(object, property, value);
+}
+
+void parseQuestion(FILE* file) {
+    char str[BUF_LEN];
+    char object[BUF_LEN];
+    char property[BUF_LEN];
+    char* ptr;
+    if (!fgets(str, BUF_LEN, file) || str[0] != 'Q') {
+        return;
+    }
+    ptr = strtok(str + 1, ":");
+    if (!ptr) {
+        return;
+    }
+    strcpy(object, ptr);
+    stripStr(object);
+    ptr = strtok(0, "\n");
+    if (!ptr) {
+       return;
+    }
+    strcpy(property, ptr);
+    stripStr(property);
+    lookUp(object, property);
 }
 
 int main(int argc, char** argv) {
     FILE* fact = fopen(argv[1], "r");
+    FILE* question = fopen(argv[2], "r");
     if (!fact) {
         printf("Cannot open file %s\n", argv[1]);
         exit(0);
     }
+    if (!question) {
+        printf("Cannot open file %s\n", argv[2]);
+        exit(0);
+    }
     while (!feof(fact)) {
         parseFact(fact);
-        break;
+    }
+    while (!feof(question)) {
+        parseQuestion(question);
     }
     // saveIntoList("CDC6600", "number_registers", "24");
     // saveIntoList("CDC6600", "opcode_bits", "6");
@@ -102,7 +154,7 @@ int main(int argc, char** argv) {
     // saveIntoList("PDP11", "opcode_bits", "4,8,10");
     // saveIntoList("IBM360", "number_registers", "16");
     // saveIntoList("IBM360", "opcode_bits", "8");
-    lookUp("PDP11", "opcode_bits");
+    // lookUp("PDP11", "opcode_bits");
     return 0;
 }
 
