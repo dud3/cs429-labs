@@ -131,30 +131,50 @@ void parseQuestion(FILE* file) {
     lookUp(object, property);
 }
 
+void releaseList() {
+    while (objectHead) {
+        ObjectNode* nextObject = objectHead->next;
+        while (objectHead->property) {
+            PropertyNode* nextProperty = objectHead->property->next;
+            free(objectHead->property->propertyName);
+            free(objectHead->property->value);
+            free(objectHead->property);
+            objectHead->property = nextProperty;
+        }
+        free(objectHead->objectName);
+        free(objectHead);
+        objectHead = nextObject;
+    }
+}
+
 int main(int argc, char** argv) {
-    FILE* fact = fopen(argv[1], "r");
-    FILE* question = fopen(argv[2], "r");
-    if (!fact) {
+    FILE* fact;
+    FILE* question = stdin;
+    if (argc != 2 && argc != 3) { // Syntax error
+        printf("Usage: %s fact-file [question-file]\n", argv[0]);
+        exit(0);
+    }
+    fact = fopen(argv[1], "r");
+    if (argc == 3) {
+        question = fopen(argv[2], "r");
+    }
+    if (!fact) { // Fact file open error
         printf("Cannot open file %s\n", argv[1]);
         exit(0);
     }
-    if (!question) {
+    if (!question) { // Question file open error
         printf("Cannot open file %s\n", argv[2]);
         exit(0);
     }
-    while (!feof(fact)) {
+    while (!feof(fact)) { // Reading fact
         parseFact(fact);
     }
-    while (!feof(question)) {
+    while (!feof(question)) { // Reading question
         parseQuestion(question);
     }
-    // saveIntoList("CDC6600", "number_registers", "24");
-    // saveIntoList("CDC6600", "opcode_bits", "6");
-    // saveIntoList("PDP11", "number_registers","8");
-    // saveIntoList("PDP11", "opcode_bits", "4,8,10");
-    // saveIntoList("IBM360", "number_registers", "16");
-    // saveIntoList("IBM360", "opcode_bits", "8");
-    // lookUp("PDP11", "opcode_bits");
+    releaseList();
+    fclose(question);
+    fclose(fact);
     return 0;
 }
 
