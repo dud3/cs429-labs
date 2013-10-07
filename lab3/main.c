@@ -23,21 +23,53 @@ void saveIntoList(const char* object, const char* property, const char* value) {
     }
     if (!cur) { // Object does not exist
         cur = (ObjectNode*) malloc(sizeof(ObjectNode));
+        if (!cur) {
+            printf("Insufficient memory");
+            exit(1);
+        }
         cur->objectName = (char*) calloc(strlen(object) + 1, sizeof(char));
+        if (!cur->objectName) {
+            printf("Insufficient memory");
+            exit(1);
+        }
         strcpy(cur->objectName, object);
         cur->property = (PropertyNode*) malloc(sizeof(PropertyNode));
+        if (!cur->property) {
+            printf("Insufficient memory");
+            exit(1);
+        }
         cur->property->propertyName = (char*) calloc(strlen(property) + 1, sizeof(char));
+        if (!cur->property->propertyName) {
+            printf("Insufficient memory");
+            exit(1);
+        }
         strcpy(cur->property->propertyName, property);
         cur->property->value = (char*) calloc(strlen(value) + 1, sizeof(char));
+        if (!cur->property->value) {
+            printf("Insufficient memory");
+            exit(1);
+        }
         strcpy(cur->property->value, value);
         cur->property->next = 0;
         cur->next = objectHead;
         objectHead = cur;
     } else { // Object exist
         PropertyNode* newProperty = (PropertyNode*) malloc(sizeof(PropertyNode)); // Always create a new property
+        if (!newProperty) {
+            printf("Insufficient memory");
+            exit(1);
+        }
         newProperty->propertyName = (char*) calloc(strlen(property) + 1, sizeof(char));
+        if (!newProperty->propertyName) {
+            printf("Insufficient memory");
+            exit(1);
+        }
         strcpy(newProperty->propertyName, property);
         newProperty->value = (char*) calloc(strlen(value) + 1, sizeof(char));
+        if (!newProperty->value) {
+            printf("Insufficient memory");
+            exit(1);
+        }
         strcpy(newProperty->value, value);
         newProperty->next = cur->property;
         cur->property = newProperty;
