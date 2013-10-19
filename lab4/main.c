@@ -13,8 +13,8 @@ typedef struct {
 
 int main(int argc, char** argv) {
     FILE* obj;
-    MachineStatus* machineStatus = (MachineStatus*) malloc(sizeof(MachineStatus));
-    memset(machineStatus, 0, sizeof(MachineStatus));
+    int epSet;
+    MachineStatus* machineStatus;
     if (argc != 2) { // Check syntax
         fprintf(stderr, "Usage: %s object-file\n", argv[0]);
         exit(0);
@@ -24,11 +24,26 @@ int main(int argc, char** argv) {
         fprintf(stderr, "Cannot open object file \"%s\"\n", argv[1]);
         exit(0);
     }
+    epSet = 0;
+    machineStatus = (MachineStatus*) malloc(sizeof(MachineStatus));
+    memset(machineStatus, 0, sizeof(MachineStatus));
     while (!feof(obj)) {
-
+        char buf[1024];
+        fgets(buf, sizeof(buf), obj);
+        if (!strncmp(buf, "\n", 1) || !strncmp(buf, "\r\n", 2)) { // Skip empty line
+            continue;
+        }
+        if (!strncmp(buf, "EP: ", 4)) {
+            if (epSet == 1 || sscanf(buf, "EP: %x\r\n", &machineStatus->ep) != 1) {
+                fprintf(stderr, "Object file error: %s", buf);
+                free(machineStatus);
+                exit(0);
+            }
+            epSet = 1;
+        }
     }
-    fscanf(obj, "EP:%x", &machineStatus->ep);
-    printf("%d\n", machineStatus->ep);
+    // fscanf(obj, "EP:%x", &machineStatus->ep);
+    // printf("%d\n", machineStatus->ep);
     // fscanf(obj, "%x:%x", &addr, &instruction);
     // printf("%x is %x\n", addr, instruction);
 
