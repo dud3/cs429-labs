@@ -89,6 +89,7 @@ void appendInstructionStr(char* str, const char* rep) {
 
 int main(int argc, char** argv) {
     long long int time = 0;
+    int halt = 0;
     MachineStatus* machineStatus;
     if (argc != 2) { // Check syntax
         fprintf(stderr, "Usage: %s object-file\n", argv[0]);
@@ -100,7 +101,7 @@ int main(int argc, char** argv) {
         free(machineStatus);
         exit(0);
     }
-    while (0 <= machineStatus->programCounter && machineStatus->programCounter < 4096) {
+    while (0 <= machineStatus->programCounter && machineStatus->programCounter < 4096 && !halt) {
         int instruction = machineStatus->memory[machineStatus->programCounter]; // Fetch instruction
         char strInstruction[1024];
         memset(strInstruction, 0, sizeof(strInstruction));
@@ -110,6 +111,7 @@ int main(int argc, char** argv) {
             switch (instruction >> 9) {
                 case 0: // AND
                     machineStatus->reg &= machineStatus->memory[address];
+                    time += 2;
                     appendInstructionStr(strInstruction, "AND");
                     break;
                 case 1: // TAD
@@ -118,27 +120,32 @@ int main(int argc, char** argv) {
                         machineStatus->link = 1 - machineStatus->link;
                         machineStatus->reg &= 0x0FFF;
                     }
+                    time += 2;
                     appendInstructionStr(strInstruction, "TAD");
                     break;
                 case 2: // ISZ
                     if (++machineStatus->memory[address]) {
                         ++machineStatus->programCounter;
                     }
+                    time += 2;
                     appendInstructionStr(strInstruction, "ISZ");
                     break;
                 case 3: // DCA
                     machineStatus->memory[address] = machineStatus->reg;
                     machineStatus->reg = 0;
+                    time += 2;
                     appendInstructionStr(strInstruction, "DCA");
                     break;
                 case 4: // JMS
                     machineStatus->memory[address] = machineStatus->programCounter + 1;
                     machineStatus->programCounter = address;
+                    time += 2;
                     appendInstructionStr(strInstruction, "JMS");
                     break;
                 case 5: // JMP
                     machineStatus->programCounter = address - 1;
                     appendInstructionStr(strInstruction, "JMP");
+                    time += 1;
                     break;
             }
         } else if ((instruction >> 9) == 0x07) { // Operate instruction
@@ -174,7 +181,7 @@ int main(int argc, char** argv) {
                     ++machineStatus->programCounter;
                 }
                 if (instruction & 0x03) { // HLT
-                    machineStatus->programCounter = -2;
+                    halt = 1;
                     appendInstructionStr(strInstruction, "HLT");
                 }
                 if (!(instruction & 0xFB)) { // NOP
@@ -182,7 +189,7 @@ int main(int argc, char** argv) {
                 }
             } else { // Group 1
                 if ((instruction & 0x0C) == 0x0C) { // Illegal
-                    machineStatus->programCounter = -2;
+                    halt = 1;
                     appendInstructionStr(strInstruction, "HLT");
                 } else {
                     if (instruction & 0x80) { // CLA
@@ -230,6 +237,7 @@ int main(int argc, char** argv) {
                     }
                 }
             }
+            time += 1;
         } else { // Input-output instruction
             int device = (instruction & 0x01F8) >> 3;
             if (device == 3) {
@@ -239,9 +247,10 @@ int main(int argc, char** argv) {
                 putchar(machineStatus->reg & 0xFF);
                 appendInstructionStr(strInstruction, "IOT");
             } else { // Illegal
-                machineStatus->programCounter = -2;
+                halt = 1;
                 appendInstructionStr(strInstruction, "HLT");
             }
+            time += 1;
         }
         printf("Time %lld: PC=0x%03X instruction = 0x%03X (%s), rA = 0x%03X, rL = %d\n", time, machineStatus->programCounter, instruction, strInstruction, machineStatus->reg, machineStatus->link & 0x01);
         ++machineStatus->programCounter; // Update program counter
