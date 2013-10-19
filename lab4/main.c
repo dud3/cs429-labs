@@ -102,6 +102,7 @@ int main(int argc, char** argv) {
         exit(0);
     }
     while (0 <= machineStatus->programCounter && machineStatus->programCounter < 4096 && !halt) {
+        int oldProgramCounter = machineStatus->programCounter;
         int instruction = machineStatus->memory[machineStatus->programCounter]; // Fetch instruction
         char strInstruction[1024];
         memset(strInstruction, 0, sizeof(strInstruction));
@@ -252,7 +253,7 @@ int main(int argc, char** argv) {
             }
             time += 1;
         }
-        printf("Time %lld: PC=0x%03X instruction = 0x%03X (%s), rA = 0x%03X, rL = %d\n", time, machineStatus->programCounter, instruction, strInstruction, machineStatus->reg, machineStatus->link & 0x01);
+        printf("Time %lld: PC=0x%03X instruction = 0x%03X (%s), rA = 0x%03X, rL = %d\n", time, oldProgramCounter, instruction, strInstruction, machineStatus->reg, machineStatus->link & 0x01);
         ++machineStatus->programCounter; // Update program counter
     }
     free(machineStatus);
