@@ -2,8 +2,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define MEMORY_SIZE 4096
-
 typedef struct {
     int link;
     int reg;
@@ -79,7 +77,18 @@ int getMemoryAddress(int instruction, MachineStatus* machineStatus) {
     return address;
 }
 
+void appendInstructionStr(char* str, const char* rep) {
+    int len = strlen(str);
+    if (!len) {
+        strcpy(str, rep);
+    } else {
+        str[len] = ' ';
+        strcpy(str + len + 1, rep);
+    }
+}
+
 int main(int argc, char** argv) {
+    long long int time = 0;
     MachineStatus* machineStatus;
     if (argc != 2) { // Check syntax
         fprintf(stderr, "Usage: %s object-file\n", argv[0]);
@@ -91,14 +100,17 @@ int main(int argc, char** argv) {
         free(machineStatus);
         exit(0);
     }
-    while (1) {
-        int instruction = machineStatus->memory[machineStatus->programCounter];
+    while (0 <= machineStatus->programCounter && machineStatus->programCounter < 4096) {
+        int instruction = machineStatus->memory[machineStatus->programCounter]; // Fetch instruction
+        char strInstruction[1024];
+        memset(strInstruction, 0, sizeof(strInstruction));
         if ((instruction >> 9) <= 5) { // Memory reference instruction
-            int address = getMemoryAddress(instruction, machineStatus);
+            int address = getMemoryAddress(instruction, machineStatus); // Effective address
             // TODO Add time counter
             switch (instruction >> 9) {
                 case 0: // AND
                     machineStatus->reg &= machineStatus->memory[address];
+                    appendInstructionStr(strInstruction, "AND");
                     break;
                 case 1: // TAD
                     machineStatus->reg += machineStatus->memory[address];
@@ -106,108 +118,133 @@ int main(int argc, char** argv) {
                         machineStatus->link = 1 - machineStatus->link;
                         machineStatus->reg &= 0x0FFF;
                     }
+                    appendInstructionStr(strInstruction, "TAD");
                     break;
                 case 2: // ISZ
                     if (++machineStatus->memory[address]) {
                         ++machineStatus->programCounter;
-                        // TODO programCounter out of range?
                     }
+                    appendInstructionStr(strInstruction, "ISZ");
                     break;
                 case 3: // DCA
                     machineStatus->memory[address] = machineStatus->reg;
                     machineStatus->reg = 0;
+                    appendInstructionStr(strInstruction, "DCA");
                     break;
                 case 4: // JMS
                     machineStatus->memory[address] = machineStatus->programCounter + 1;
-                    machineStatus->programCounter = address + 1;
+                    machineStatus->programCounter = address;
+                    appendInstructionStr(strInstruction, "JMS");
                     break;
                 case 5: // JMP
-                    machineStatus->programCounter = address;
+                    machineStatus->programCounter = address - 1;
+                    appendInstructionStr(strInstruction, "JMP");
                     break;
             }
         } else if ((instruction >> 9) == 0x07) { // Operate instruction
             if (instruction & 0x0100) { // Group 2
-                int skip = 0;
+                int skip = 0; // Skip next instruction
                 if (instruction & 0x40) { // SMA
                     if (machineStatus->reg & 0x0800) {
                         skip = 1;
                     }
+                    appendInstructionStr(strInstruction, "SMA");
                 }
                 if (instruction & 0x20) { // SZA
                     if (!machineStatus->reg) {
                         skip = 1;
                     }
+                    appendInstructionStr(strInstruction, "SZA");
                 }
                 if (instruction & 0x10) { // SNL
                     if (machineStatus->link) {
                         skip = 1;
                     }
+                    appendInstructionStr(strInstruction, "SNL");
                 }
                 if (instruction & 0x08) { // RSS
                     skip = 1 - skip;
+                    appendInstructionStr(strInstruction, "RSS");
                 }
                 if (instruction & 0x80) { // CLA
                     machineStatus->reg = 0;
-                }
-                if (instruction & 0x03) { // HLT
-                    // TODO HLT
+                    appendInstructionStr(strInstruction, "CLA");
                 }
                 if (skip) {
                     ++machineStatus->programCounter;
                 }
-                if (instruction & 0xFB) { // NOP
-                    // TODO NOP
+                if (instruction & 0x03) { // HLT
+                    machineStatus->programCounter = -2;
+                    appendInstructionStr(strInstruction, "HLT");
+                }
+                if (!(instruction & 0xFB)) { // NOP
+                    appendInstructionStr(strInstruction, "NOP");
                 }
             } else { // Group 1
-                if (instruction & 0x80) { // CLA
-                    machineStatus->reg = 0;
-                }
-                if (instruction & 0x40) { // CLL
-                    machineStatus->link = 0;
-                }
-                if (instruction & 0x20) { // CMA
-                    machineStatus->reg = ~machineStatus->reg & 0x0FFF;
-                }
-                if (instruction & 0x10) { // CML
-                    machineStatus->link = 1 - machineStatus->link;
-                }
-                if (instruction & 0x01) { // IAC
-                    ++machineStatus->reg;
-                    if (machineStatus->reg & 0x1000) { // Carry
+                if ((instruction & 0x0C) == 0x0C) { // Illegal
+                    machineStatus->programCounter = -2;
+                    appendInstructionStr(strInstruction, "HLT");
+                } else {
+                    if (instruction & 0x80) { // CLA
+                        machineStatus->reg = 0;
+                        appendInstructionStr(strInstruction, "CLA");
+                    }
+                    if (instruction & 0x40) { // CLL
+                        machineStatus->link = 0;
+                        appendInstructionStr(strInstruction, "CLL");
+                    }
+                    if (instruction & 0x20) { // CMA
+                        machineStatus->reg = ~machineStatus->reg & 0x0FFF;
+                        appendInstructionStr(strInstruction, "CMA");
+                    }
+                    if (instruction & 0x10) { // CML
                         machineStatus->link = 1 - machineStatus->link;
+                        appendInstructionStr(strInstruction, "CML");
+                    }
+                    if (instruction & 0x01) { // IAC
+                        ++machineStatus->reg;
+                        if (machineStatus->reg & 0x1000) { // Carry
+                            machineStatus->link = 1 - machineStatus->link;
+                            machineStatus->reg &= 0x0FFF;
+                        }
+                        appendInstructionStr(strInstruction, "IAC");
+                    }
+                    if (instruction & 0x0C) { // Rotate
+                        int rotate = 1;
+                        if (instruction & 0x02) { // Rotate two bits
+                            rotate = 2;
+                        }
+                        if (instruction & 0x08) { // RAR or RTR
+                            machineStatus->reg = (machineStatus->reg | (machineStatus->link << 12) | ((machineStatus->reg & 0x03) << 13)) >> rotate;
+                            appendInstructionStr(strInstruction, rotate == 1 ? "RAR" : "RTR");
+                        } else { // RAL or RTL
+                            machineStatus->reg = (machineStatus->reg | (machineStatus->link << 12)) << rotate;
+                            machineStatus->reg |= machineStatus->reg >> 13;
+                            appendInstructionStr(strInstruction, rotate == 1 ? "RAL" : "RTL");
+                        }
+                        machineStatus->link = (machineStatus->reg & 0x1000) >> 12;
                         machineStatus->reg &= 0x0FFF;
                     }
-                }
-                if ((instruction & 0x0C) == 0x0C) { // Illegal
-                    // TODO HLT
-                }
-                if (instruction & 0x0C) { // Rotate
-                    int rotate = 1;
-                    if (instruction & 0x02) { // Rotate two bits
-                        rotate = 2;
+                    if (!(instruction & 0xFD)) { // NOP
+                        appendInstructionStr(strInstruction, "NOP");
                     }
-                    if (instruction & 0x08) { // RAR or RTR
-                        machineStatus->reg = (machineStatus->reg | (machineStatus->link << 12) | ((machineStatus->reg & 0x03) << 13)) >> rotate;
-                    } else { // RAL or RTL
-                        machineStatus->reg = (machineStatus->reg | (machineStatus->link << 12) | ((machineStatus->reg & 0x03) << 13)) << rotate;
-                    }
-                    machineStatus->link = (machineStatus->reg & 0x1000) >> 12;
-                    machineStatus->reg &= 0x0FFF;
-                }
-                if (instruction & 0xFD) { // NOP
-                    // TODO NOP
                 }
             }
         } else { // Input-output instruction
             int device = (instruction & 0x01F8) >> 3;
             if (device == 3) {
                 machineStatus->reg = getchar();
+                appendInstructionStr(strInstruction, "IOT");
             } else if (device == 4) {
                 putchar(machineStatus->reg & 0xFF);
+                appendInstructionStr(strInstruction, "IOT");
             } else { // Illegal
-                // TODO HLT
+                machineStatus->programCounter = -2;
+                appendInstructionStr(strInstruction, "HLT");
             }
         }
+        printf("Time %lld: PC=0x%03X instruction = 0x%03X (%s), rA = 0x%03X, rL = %d\n", time, machineStatus->programCounter, instruction, strInstruction, machineStatus->reg, machineStatus->link & 0x01);
+        ++machineStatus->programCounter; // Update program counter
     }
     free(machineStatus);
     return 0;
