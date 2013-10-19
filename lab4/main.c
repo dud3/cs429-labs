@@ -9,6 +9,20 @@ typedef struct {
     int memory[4096];
 } MachineStatus;
 
+typedef struct {
+    int size;
+    int cur;
+    char* buf;
+} OutputBuffer;
+
+void outputToBuffer(OutputBuffer* buf, char c) {
+    if (buf->size == buf->cur + 1) {
+        buf->buf = realloc(buf->buf, (buf->size <<= 1));
+    }
+    buf->buf[buf->cur] = c;
+    ++buf->cur;
+}
+
 int isHex(char c) {
     return ('0' <= c && c <= '9') || ('a' <= c && c <= 'z') || ('A' <= c && c <= 'Z');
 }
@@ -87,32 +101,41 @@ void appendInstructionStr(char* str, const char* rep) {
     }
 }
 
+// TODO treat OSR as NOP, but output as?
+// TODO verbose output IOT 4?
 int main(int argc, char** argv) {
     long long int time = 0;
     int halt = 0;
+    int verbose = 0;
     MachineStatus* machineStatus;
-    if (argc != 2) { // Check syntax
-        fprintf(stderr, "Usage: %s object-file\n", argv[0]);
+    OutputBuffer outputBuffer;
+    if (!(argc == 2 || (argc == 3 && !strcmp(argv[1], "-v")))) { // Check syntax
+        fprintf(stderr, "Usage: %s [-v] object-file\n", argv[0]);
         exit(0);
+    }
+    if (argc == 3) { // Verbose mode
+        verbose = 1;
     }
     machineStatus = (MachineStatus*) malloc(sizeof(MachineStatus));
     memset(machineStatus, 0, sizeof(MachineStatus));
-    if (parseObjectFile(argv[1], machineStatus)) {
+    outputBuffer.size = 1024;
+    outputBuffer.cur = 0;
+    outputBuffer.buf = (char*) calloc(outputBuffer.size, sizeof(char));
+    // TODO free this shit
+    if (parseObjectFile(argv[verbose ? 2 : 1], machineStatus)) {
         free(machineStatus);
         exit(0);
     }
-    while (0 <= machineStatus->programCounter && machineStatus->programCounter < 4096 && !halt) {
+    while (!halt) {
         int oldProgramCounter = machineStatus->programCounter;
         int instruction = machineStatus->memory[machineStatus->programCounter]; // Fetch instruction
         char strInstruction[1024];
         memset(strInstruction, 0, sizeof(strInstruction));
         if ((instruction >> 9) <= 5) { // Memory reference instruction
             int address = getMemoryAddress(instruction, machineStatus); // Effective address
-            // TODO Add time counter
             switch (instruction >> 9) {
                 case 0: // AND
                     machineStatus->reg &= machineStatus->memory[address];
-                    time += 2;
                     appendInstructionStr(strInstruction, "AND");
                     break;
                 case 1: // TAD
@@ -121,33 +144,35 @@ int main(int argc, char** argv) {
                         machineStatus->link = 1 - machineStatus->link;
                         machineStatus->reg &= 0x0FFF;
                     }
-                    time += 2;
                     appendInstructionStr(strInstruction, "TAD");
                     break;
                 case 2: // ISZ
-                    if (++machineStatus->memory[address]) {
-                        ++machineStatus->programCounter;
+                    machineStatus->memory[address] = (machineStatus->memory[address] + 1) & 0x0FFF;
+                    if (!machineStatus->memory[address]) {
+                        machineStatus->programCounter = (machineStatus->programCounter + 1) & 0x0FFF;
                     }
-                    time += 2;
                     appendInstructionStr(strInstruction, "ISZ");
                     break;
                 case 3: // DCA
                     machineStatus->memory[address] = machineStatus->reg;
                     machineStatus->reg = 0;
-                    time += 2;
                     appendInstructionStr(strInstruction, "DCA");
                     break;
                 case 4: // JMS
-                    machineStatus->memory[address] = machineStatus->programCounter + 1;
+                    machineStatus->memory[address] = (machineStatus->programCounter + 1) & 0x0FFF;
                     machineStatus->programCounter = address;
-                    time += 2;
                     appendInstructionStr(strInstruction, "JMS");
                     break;
                 case 5: // JMP
-                    machineStatus->programCounter = address - 1;
+                    machineStatus->programCounter = (address - 1) & 0x0FFF;
                     appendInstructionStr(strInstruction, "JMP");
-                    time += 1;
+                    time -= 1;
                     break;
+            }
+            time += 2;
+            if (instruction & 0x0100) { // Indirect addressing
+                appendInstructionStr(strInstruction, "I");
+                time += 1;
             }
         } else if ((instruction >> 9) == 0x07) { // Operate instruction
             if (instruction & 0x0100) { // Group 2
@@ -179,7 +204,7 @@ int main(int argc, char** argv) {
                     appendInstructionStr(strInstruction, "CLA");
                 }
                 if (skip) {
-                    ++machineStatus->programCounter;
+                    machineStatus->programCounter = (machineStatus->programCounter + 1) & 0x0FFF;
                 }
                 if (instruction & 0x03) { // HLT
                     halt = 1;
@@ -243,19 +268,25 @@ int main(int argc, char** argv) {
             int device = (instruction & 0x01F8) >> 3;
             if (device == 3) {
                 machineStatus->reg = getchar();
-                appendInstructionStr(strInstruction, "IOT");
+                appendInstructionStr(strInstruction, "IOT 3");
             } else if (device == 4) {
-                putchar(machineStatus->reg & 0xFF);
-                appendInstructionStr(strInstruction, "IOT");
+                if (!verbose) {
+                    // putchar(machineStatus->reg & 0xFF);
+                    outputToBuffer(&outputBuffer, machineStatus->reg & 0xFF);
+                }
+                appendInstructionStr(strInstruction, "IOT 4");
             } else { // Illegal
                 halt = 1;
                 appendInstructionStr(strInstruction, "HLT");
             }
             time += 1;
         }
-        printf("Time %lld: PC=0x%03X instruction = 0x%03X (%s), rA = 0x%03X, rL = %d\n", time, oldProgramCounter, instruction, strInstruction, machineStatus->reg, machineStatus->link & 0x01);
-        ++machineStatus->programCounter; // Update program counter
+        if (verbose) {
+            printf("Time %lld: PC=0x%03X instruction = 0x%03X (%s), rA = 0x%03X, rL = %d\n", time, oldProgramCounter, instruction, strInstruction, machineStatus->reg, machineStatus->link & 0x01);
+        }
+        machineStatus->programCounter = (machineStatus->programCounter + 1) & 0x0FFF; // Update program counter
     }
+    printf("%s", outputBuffer.buf);
     free(machineStatus);
     return 0;
 }

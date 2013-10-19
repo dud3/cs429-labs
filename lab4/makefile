@@ -18,4 +18,10 @@ main: $(objects)
 .PHONY: clean
 clean:
 	rm -rf main main.dSYM *.o
+test: main
+	@./main test.obj > tmp
+	@diff tmp test.out
+	@./main all.obj > tmp
+	@diff tmp all.out
+	@echo Test done
 
