@@ -101,7 +101,6 @@ void appendInstructionStr(char* str, const char* rep) {
     }
 }
 
-// TODO treat OSR as NOP, but output as?
 int main(int argc, char** argv) {
     long long int time = 0;
     int halt = 0;
@@ -209,7 +208,10 @@ int main(int argc, char** argv) {
                     halt = 1;
                     appendInstructionStr(strInstruction, "HLT");
                 }
-                if (!(instruction & 0xFB)) { // NOP
+                if (instruction & 0x04) { // OSR
+                    appendInstructionStr(strInstruction, "OSR");
+                }
+                if (!(instruction & 0xFF)) { // NOP
                     appendInstructionStr(strInstruction, "NOP");
                 }
             } else { // Group 1
