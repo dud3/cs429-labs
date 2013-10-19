@@ -93,8 +93,9 @@ int main(int argc, char** argv) {
     }
     while (1) {
         int instruction = machineStatus->memory[machineStatus->programCounter];
-        if ((instruction >> 9) <= 5) { // Memory reference instructions
+        if ((instruction >> 9) <= 5) { // Memory reference instruction
             int address = getMemoryAddress(instruction, machineStatus);
+            // TODO Add time counter
             switch (instruction >> 9) {
                 case 0: // AND
                     machineStatus->reg &= machineStatus->memory[address];
@@ -102,13 +103,14 @@ int main(int argc, char** argv) {
                 case 1: // TAD
                     machineStatus->reg += machineStatus->memory[address];
                     if (machineStatus->reg & 0x1000) { // Carry
-                        machineStatus->link = ~machineStatus->link;
+                        machineStatus->link = 1 - machineStatus->link;
                         machineStatus->reg &= 0x0FFF;
                     }
                     break;
                 case 2: // ISZ
                     if (++machineStatus->memory[address]) {
                         ++machineStatus->programCounter;
+                        // TODO programCounter out of range?
                     }
                     break;
                 case 3: // DCA
@@ -122,6 +124,79 @@ int main(int argc, char** argv) {
                 case 5: // JMP
                     machineStatus->programCounter = address;
                     break;
+            }
+        } else if ((instruction >> 9) == 0x07) { // Operate instruction
+            if (instruction & 0x0100) { // Group 2
+                int skip = 0;
+                if (instruction & 0x40) { // SMA
+                    if (machineStatus->reg & 0x0800) {
+                        skip = 1;
+                    }
+                }
+                if (instruction & 0x20) { // SZA
+                    if (!machineStatus->reg) {
+                        skip = 1;
+                    }
+                }
+                if (instruction & 0x10) { // SNL
+                    if (machineStatus->link) {
+                        skip = 1;
+                    }
+                }
+                if (instruction & 0x08) { // RSS
+                    skip = 1 - skip;
+                }
+                if (instruction & 0x80) { // CLA
+                    machineStatus->reg = 0;
+                }
+                if (instruction & 0x03) { // HLT
+                    // TODO HLT
+                }
+                if (skip) {
+                    ++machineStatus->programCounter;
+                }
+                if (instruction & 0xFB) { // NOP
+                    // TODO NOP
+                }
+            } else { // Group 1
+                if (instruction & 0x80) { // CLA
+                    machineStatus->reg = 0;
+                }
+                if (instruction & 0x40) { // CLL
+                    machineStatus->link = 0;
+                }
+                if (instruction & 0x20) { // CMA
+                    machineStatus->reg = ~machineStatus->reg & 0x0FFF;
+                }
+                if (instruction & 0x10) { // CML
+                    machineStatus->link = 1 - machineStatus->link;
+                }
+                if (instruction & 0x01) { // IAC
+                    ++machineStatus->reg;
+                    if (machineStatus->reg & 0x1000) { // Carry
+                        machineStatus->link = 1 - machineStatus->link;
+                        machineStatus->reg &= 0x0FFF;
+                    }
+                }
+                if ((instruction & 0x0C) == 0x0C) { // Illegal
+                    // TODO HLT
+                }
+                if (instruction & 0x0C) { // Rotate
+                    int rotate = 1;
+                    if (instruction & 0x02) { // Rotate two bits
+                        rotate = 2;
+                    }
+                    if (instruction & 0x08) { // RAR or RTR
+                        machineStatus->reg = (machineStatus->reg | (machineStatus->link << 12) | ((machineStatus->reg & 0x03) << 13)) >> rotate;
+                    } else { // RAL or RTL
+                        machineStatus->reg = (machineStatus->reg | (machineStatus->link << 12) | ((machineStatus->reg & 0x03) << 13)) << rotate;
+                    }
+                    machineStatus->link = (machineStatus->reg & 0x1000) >> 12;
+                    machineStatus->reg &= 0x0FFF;
+                }
+                if (instruction & 0xFD) { // NOP
+                    // TODO NOP
+                }
             }
         }
     }
