@@ -198,6 +198,15 @@ int main(int argc, char** argv) {
                     // TODO NOP
                 }
             }
+        } else { // Input-output instruction
+            int device = (instruction & 0x01F8) >> 3;
+            if (device == 3) {
+                machineStatus->reg = getchar();
+            } else if (device == 4) {
+                putchar(machineStatus->reg & 0xFF);
+            } else { // Illegal
+                // TODO HLT
+            }
         }
     }
     free(machineStatus);
