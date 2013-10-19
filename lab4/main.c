@@ -6,6 +6,7 @@
 
 typedef struct {
     int link;
+    int reg;
     int programCounter;
     int memory[4096];
 } MachineStatus;
@@ -92,8 +93,37 @@ int main(int argc, char** argv) {
     }
     while (1) {
         int instruction = machineStatus->memory[machineStatus->programCounter];
-        if ((instruction >> 9) <= 5) {
-            getMemoryAddress(instruction, machineStatus);
+        if ((instruction >> 9) <= 5) { // Memory reference instructions
+            int address = getMemoryAddress(instruction, machineStatus);
+            switch (instruction >> 9) {
+                case 0: // AND
+                    machineStatus->reg &= machineStatus->memory[address];
+                    break;
+                case 1: // TAD
+                    machineStatus->reg += machineStatus->memory[address];
+                    if (machineStatus->reg & 0x1000) { // Carry
+                        machineStatus->link = ~machineStatus->link;
+                        machineStatus->reg &= 0x0FFF;
+                    }
+                    break;
+                case 2: // ISZ
+                    if (++machineStatus->memory[address]) {
+                        ++machineStatus->programCounter;
+                    }
+                    break;
+                case 3: // DCA
+                    machineStatus->memory[address] = machineStatus->reg;
+                    machineStatus->reg = 0;
+                    break;
+                case 4: // JMS
+                    machineStatus->memory[address] = machineStatus->programCounter + 1;
+                    machineStatus->programCounter = address + 1;
+                    break;
+                case 5: // JMP
+                    machineStatus->programCounter = address;
+                    break;
+            }
+        }
     }
     free(machineStatus);
     return 0;
