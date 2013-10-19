@@ -102,7 +102,6 @@ void appendInstructionStr(char* str, const char* rep) {
 }
 
 // TODO treat OSR as NOP, but output as?
-// TODO verbose output IOT 4?
 int main(int argc, char** argv) {
     long long int time = 0;
     int halt = 0;
@@ -116,13 +115,13 @@ int main(int argc, char** argv) {
     if (argc == 3) { // Verbose mode
         verbose = 1;
     }
-    machineStatus = (MachineStatus*) malloc(sizeof(MachineStatus));
+    machineStatus = (MachineStatus*) malloc(sizeof(MachineStatus)); // Initialize
     memset(machineStatus, 0, sizeof(MachineStatus));
     outputBuffer.size = 1024;
     outputBuffer.cur = 0;
     outputBuffer.buf = (char*) calloc(outputBuffer.size, sizeof(char));
-    // TODO free this shit
     if (parseObjectFile(argv[verbose ? 2 : 1], machineStatus)) {
+        free(outputBuffer.buf);
         free(machineStatus);
         exit(0);
     }
@@ -270,10 +269,7 @@ int main(int argc, char** argv) {
                 machineStatus->reg = getchar();
                 appendInstructionStr(strInstruction, "IOT 3");
             } else if (device == 4) {
-                if (!verbose) {
-                    // putchar(machineStatus->reg & 0xFF);
-                    outputToBuffer(&outputBuffer, machineStatus->reg & 0xFF);
-                }
+                outputToBuffer(&outputBuffer, machineStatus->reg & 0xFF);
                 appendInstructionStr(strInstruction, "IOT 4");
             } else { // Illegal
                 halt = 1;
@@ -287,6 +283,7 @@ int main(int argc, char** argv) {
         machineStatus->programCounter = (machineStatus->programCounter + 1) & 0x0FFF; // Update program counter
     }
     printf("%s", outputBuffer.buf);
+    free(outputBuffer.buf);
     free(machineStatus);
     return 0;
 }

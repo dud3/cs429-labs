@@ -19,9 +19,12 @@ main: $(objects)
 clean:
 	rm -rf main main.dSYM *.o
 test: main
-	@./main test.obj > tmp
+	@./main -v test.obj > tmp
 	@diff tmp test.out
-	@./main all.obj > tmp
+	@./main -v all.obj > tmp
 	@diff tmp all.out
+	@./main prime.obj > tmp
+	@diff tmp prime.out
+	@rm -f tmp
 	@echo Test done
 
