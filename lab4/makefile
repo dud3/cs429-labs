@@ -8,7 +8,7 @@ cxx := gcc-mp-4.9
 cxxflags := -g -Wall -Wextra -std=c11
 else
 cxx := gcc
-cxxflags := -g -Wall
+cxxflags := -Wall
 endif
 
 main: $(objects)
@@ -19,11 +19,11 @@ main: $(objects)
 clean:
 	rm -rf main main.dSYM *.o
 test: main
-	@./main -v test.obj > tmp
+	@./main -v test.obj > tmp 2>&1
 	@diff tmp test.out
-	@./main -v all.obj > tmp
+	@./main -v all.obj > tmp 2>&1
 	@diff tmp all.out
-	@./main prime.obj > tmp
+	@./main prime.obj > tmp 2>&1
 	@diff tmp prime.out
 	@rm -f tmp
 	@echo Test done

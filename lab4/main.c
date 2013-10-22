@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+// Machine status
 typedef struct {
     int link;
     int reg;
@@ -9,6 +10,7 @@ typedef struct {
     int memory[4096];
 } MachineStatus;
 
+// Buffer for output
 typedef struct {
     int size;
     int cur;
@@ -23,12 +25,14 @@ void outputToBuffer(OutputBuffer* buf, char c) {
     ++buf->cur;
 }
 
+// Check if it is hex digit
 int isHex(char c) {
     return ('0' <= c && c <= '9') || ('a' <= c && c <= 'z') || ('A' <= c && c <= 'Z');
 }
 
+// Parse object file
 int parseObjectFile(const char* filename, MachineStatus* machineStatus) {
-    int epSet = 0;
+    int epSet = 0; // EP set
     FILE* obj = fopen(filename, "r"); // Open object file
     if (!obj) {
         fprintf(stderr, "Cannot open object file \"%s\"\n", filename);
@@ -80,6 +84,7 @@ int parseObjectFile(const char* filename, MachineStatus* machineStatus) {
     return 0;
 }
 
+// Addressing
 int getMemoryAddress(int instruction, MachineStatus* machineStatus) {
     int address = instruction & 0x7F;
     if (instruction & 0x80) { // Current page
@@ -91,6 +96,7 @@ int getMemoryAddress(int instruction, MachineStatus* machineStatus) {
     return address;
 }
 
+// Add instruction to output
 void appendInstructionStr(char* str, const char* rep) {
     int len = strlen(str);
     if (!len) {
@@ -119,7 +125,7 @@ int main(int argc, char** argv) {
     outputBuffer.size = 1024;
     outputBuffer.cur = 0;
     outputBuffer.buf = (char*) calloc(outputBuffer.size, sizeof(char));
-    if (parseObjectFile(argv[verbose ? 2 : 1], machineStatus)) {
+    if (parseObjectFile(argv[verbose ? 2 : 1], machineStatus)) { // Parse
         free(outputBuffer.buf);
         free(machineStatus);
         exit(0);
@@ -127,7 +133,7 @@ int main(int argc, char** argv) {
     while (!halt) {
         int oldProgramCounter = machineStatus->programCounter;
         int instruction = machineStatus->memory[machineStatus->programCounter]; // Fetch instruction
-        char strInstruction[1024];
+        char strInstruction[1024]; // String representation of instruction
         memset(strInstruction, 0, sizeof(strInstruction));
         if ((instruction >> 9) <= 5) { // Memory reference instruction
             int address = getMemoryAddress(instruction, machineStatus); // Effective address
@@ -174,45 +180,50 @@ int main(int argc, char** argv) {
             }
         } else if ((instruction >> 9) == 0x07) { // Operate instruction
             if (instruction & 0x0100) { // Group 2
-                int skip = 0; // Skip next instruction
-                if (instruction & 0x40) { // SMA
-                    if (machineStatus->reg & 0x0800) {
-                        skip = 1;
-                    }
-                    appendInstructionStr(strInstruction, "SMA");
-                }
-                if (instruction & 0x20) { // SZA
-                    if (!machineStatus->reg) {
-                        skip = 1;
-                    }
-                    appendInstructionStr(strInstruction, "SZA");
-                }
-                if (instruction & 0x10) { // SNL
-                    if (machineStatus->link) {
-                        skip = 1;
-                    }
-                    appendInstructionStr(strInstruction, "SNL");
-                }
-                if (instruction & 0x08) { // RSS
-                    skip = 1 - skip;
-                    appendInstructionStr(strInstruction, "RSS");
-                }
-                if (instruction & 0x80) { // CLA
-                    machineStatus->reg = 0;
-                    appendInstructionStr(strInstruction, "CLA");
-                }
-                if (skip) {
-                    machineStatus->programCounter = (machineStatus->programCounter + 1) & 0x0FFF;
-                }
-                if (instruction & 0x03) { // HLT
+                if (instruction & 0x01) { // Illegal
                     halt = 1;
                     appendInstructionStr(strInstruction, "HLT");
-                }
-                if (instruction & 0x04) { // OSR
-                    appendInstructionStr(strInstruction, "OSR");
-                }
-                if (!(instruction & 0xFF)) { // NOP
-                    appendInstructionStr(strInstruction, "NOP");
+                } else {
+                    int skip = 0; // Skip next instruction
+                    if (instruction & 0x40) { // SMA
+                        if (machineStatus->reg & 0x0800) {
+                            skip = 1;
+                        }
+                        appendInstructionStr(strInstruction, "SMA");
+                    }
+                    if (instruction & 0x20) { // SZA
+                        if (!machineStatus->reg) {
+                            skip = 1;
+                        }
+                        appendInstructionStr(strInstruction, "SZA");
+                    }
+                    if (instruction & 0x10) { // SNL
+                        if (machineStatus->link) {
+                            skip = 1;
+                        }
+                        appendInstructionStr(strInstruction, "SNL");
+                    }
+                    if (instruction & 0x08) { // RSS
+                        skip = 1 - skip;
+                        appendInstructionStr(strInstruction, "RSS");
+                    }
+                    if (instruction & 0x80) { // CLA
+                        machineStatus->reg = 0;
+                        appendInstructionStr(strInstruction, "CLA");
+                    }
+                    if (skip) {
+                        machineStatus->programCounter = (machineStatus->programCounter + 1) & 0x0FFF;
+                    }
+                    if (instruction & 0x02) { // HLT
+                        halt = 1;
+                        appendInstructionStr(strInstruction, "HLT");
+                    }
+                    if (instruction & 0x04) { // OSR
+                        appendInstructionStr(strInstruction, "OSR");
+                    }
+                    if (!(instruction & 0xFF)) { // NOP
+                        appendInstructionStr(strInstruction, "NOP");
+                    }
                 }
             } else { // Group 1
                 if ((instruction & 0x0C) == 0x0C) { // Illegal
@@ -280,7 +291,7 @@ int main(int argc, char** argv) {
             time += 1;
         }
         if (verbose) {
-            printf("Time %lld: PC=0x%03X instruction = 0x%03X (%s), rA = 0x%03X, rL = %d\n", time, oldProgramCounter, instruction, strInstruction, machineStatus->reg, machineStatus->link & 0x01);
+            fprintf(stderr, "Time %lld: PC=0x%03X instruction = 0x%03X (%s), rA = 0x%03X, rL = %d\n", time, oldProgramCounter, instruction, strInstruction, machineStatus->reg, machineStatus->link & 0x01);
         }
         machineStatus->programCounter = (machineStatus->programCounter + 1) & 0x0FFF; // Update program counter
     }
