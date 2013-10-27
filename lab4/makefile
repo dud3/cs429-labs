@@ -23,6 +23,8 @@ test: main
 	@diff tmp test.out
 	@./main -v all.obj > tmp 2>&1
 	@diff tmp all.out
+	@./main -v pc.obj > tmp 2>&1
+	@diff tmp pc.out
 	@./main prime.obj > tmp 2>&1
 	@diff tmp prime.out
 	@rm -f tmp

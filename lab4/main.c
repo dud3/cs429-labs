@@ -221,9 +221,6 @@ int main(int argc, char** argv) {
                     if (instruction & 0x04) { // OSR
                         appendInstructionStr(strInstruction, "OSR");
                     }
-                    if (!(instruction & 0xFF)) { // NOP
-                        appendInstructionStr(strInstruction, "NOP");
-                    }
                 }
             } else { // Group 1
                 if ((instruction & 0x0C) == 0x0C) { // Illegal
@@ -270,16 +267,13 @@ int main(int argc, char** argv) {
                         machineStatus->link = (machineStatus->reg & 0x1000) >> 12;
                         machineStatus->reg &= 0x0FFF;
                     }
-                    if (!(instruction & 0xFD)) { // NOP
-                        appendInstructionStr(strInstruction, "NOP");
-                    }
                 }
             }
             time += 1;
         } else { // Input-output instruction
             int device = (instruction & 0x01F8) >> 3;
             if (device == 3) {
-                machineStatus->reg = getchar();
+                machineStatus->reg = getchar() & 0x0FFF;
                 appendInstructionStr(strInstruction, "IOT 3");
             } else if (device == 4) {
                 outputToBuffer(&outputBuffer, machineStatus->reg & 0xFF);
