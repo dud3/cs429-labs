@@ -93,6 +93,9 @@ int getMemoryAddress(int instruction, MachineStatus* machineStatus) {
     if (instruction & 0x0100) { // Indirect addressing
         address = machineStatus->memory[address];
     }
+    // if (!(instruction & 0x80) && (instruction & 0x0100) && (0x08 <= address) && (address <=  0x0F)) {
+    //     ++machineStatus->memory[address];
+    // }
     return address;
 }
 
@@ -225,7 +228,7 @@ int main(int argc, char** argv) {
             } else { // Group 1
                 if ((instruction & 0x0C) == 0x0C) { // Illegal
                     halt = 1;
-                    appendInstructionStr(strInstruction, "HLT");
+                    appendInstructionStr(strInstruction, "RAR RAL");
                 } else {
                     if (instruction & 0x80) { // CLA
                         machineStatus->reg = 0;
@@ -272,16 +275,17 @@ int main(int argc, char** argv) {
             time += 1;
         } else { // Input-output instruction
             int device = (instruction & 0x01F8) >> 3;
+            char buf[1024];
+            memset(buf, 0, sizeof(buf));
             if (device == 3) {
                 machineStatus->reg = getchar() & 0x0FFF;
-                appendInstructionStr(strInstruction, "IOT 3");
             } else if (device == 4) {
                 outputToBuffer(&outputBuffer, machineStatus->reg & 0xFF);
-                appendInstructionStr(strInstruction, "IOT 4");
             } else { // Illegal
                 halt = 1;
-                appendInstructionStr(strInstruction, "HLT");
             }
+            sprintf(buf, "IOT %d", device);
+            appendInstructionStr(strInstruction, buf);
             time += 1;
         }
         if (verbose) {
