@@ -183,9 +183,9 @@ int main(int argc, char** argv) {
             }
         } else if ((instruction >> 9) == 0x07) { // Operate instruction
             if (instruction & 0x0100) { // Group 2
-                if (instruction & 0x01) { // Illegal
+                if (instruction & 0x01) { // EAE, illegal
                     halt = 1;
-                    appendInstructionStr(strInstruction, "HLT");
+                    appendInstructionStr(strInstruction, "EAE");
                 } else {
                     int skip = 0; // Skip next instruction
                     if (instruction & 0x40) { // SMA
@@ -226,7 +226,7 @@ int main(int argc, char** argv) {
                     }
                 }
             } else { // Group 1
-                if ((instruction & 0x0C) == 0x0C) { // Illegal
+                if ((instruction & 0x0C) == 0x0C) { // Both RAR and RAL, illegal
                     halt = 1;
                     appendInstructionStr(strInstruction, "RAR RAL");
                 } else {
