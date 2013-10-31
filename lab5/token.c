@@ -100,10 +100,12 @@ enum Token_type peek_token_type(void)
     if (input_buffer[token_index] == '\0') return(Tillegal);
 
     /* colons are for labels */
-    if (input_buffer[token_index] == ':')   return(Tcolon);
+    // Use comma for labels
+    if (input_buffer[token_index] == ',')   return(Tcolon);
 
     /* check for comments */
-    if ((input_buffer[token_index] == '/') && (input_buffer[token_index+1] == '/'))   return(Tcomment);
+    // Use / for comments
+    if (input_buffer[token_index] == '/')   return(Tcomment);
 
     /* by symbol, we mean symbol or number */
     return(Tsymbol);
