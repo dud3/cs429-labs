@@ -92,8 +92,9 @@ char *copy_token_string(int i, int j)
 enum Token_type peek_token_type(void)
 {
     /* skip any leading spaces */
+    // Do not skip commas
     while ((token_index < input_line_length) 
-           && (isspace(input_buffer[token_index]) || (input_buffer[token_index] == ','))
+           && (isspace(input_buffer[token_index]))
            ) token_index += 1;
     /* check for an empty line */
     if (token_index >= input_line_length)  return(Tillegal);
