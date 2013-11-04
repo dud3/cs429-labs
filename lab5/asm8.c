@@ -74,10 +74,10 @@ INST Adjust_for_ZC(Address pc, INST instruction, Address addr)
     else
         {
             number_of_errors += 1;
-            fprintf(stderr, "Address is not on zero or current page: Address page = 0x%3X, Current page = 0x%3X\n", 
+            fprintf(stderr, "Address is not on zero or current page: Address page = 0x%3X, Current page = 0x%3X\n",
                     addr_page, curr_page);
         }
-    
+
     /* add in address page offset to the instruction */
     instruction = instruction | (addr & 0x07F);
 
@@ -122,11 +122,11 @@ void do_opcode(Token *t)
         case k_memref:
             {
                 Address addr;
-                
+
                 good_stuff = TRUE;
                 /* first the opcode */
                 instruction = t->op->value;
-                
+
                 /* check for indirect */
                 get_token(t);
                 if ((t->type == Topcode) && (t->op->class == k_indirect))
@@ -134,8 +134,8 @@ void do_opcode(Token *t)
                         instruction = instruction | t->op->value;
                         get_token(t);
                     }
-                
-                if (t->type == Tconstant) 
+
+                if (t->type == Tconstant)
                     {
                         addr = t->value;
                     }
@@ -161,7 +161,7 @@ void do_opcode(Token *t)
                 break;
             }
 
-        case k_operate: 
+        case k_operate:
         case k_operate1:
         case k_operate2:
             good_stuff = TRUE;
@@ -189,11 +189,11 @@ void do_opcode(Token *t)
                     }
                 instruction = instruction | t->op->value;
                 fixed_bits = fixed_bits | t->op->mask;
-                
+
                 get_token(t);
             } while (t->type == Topcode);
             break;
-            
+
         case k_iot:
             {
                 int device = 0;
@@ -202,7 +202,7 @@ void do_opcode(Token *t)
                 /* IO instruction;  IOT device function */
                 good_stuff = TRUE;
                 instruction = t->op->value;
-                
+
                 get_token(t);
                 if (t->type != Tconstant)
                     {
@@ -213,7 +213,12 @@ void do_opcode(Token *t)
                     device = t->value;
                 instruction = instruction | ((device & 0x3F) << 3);
 
+                // Comma in the middle
                 get_token(t);
+                if (t->type == Tcolon) {
+                    get_token(t);
+                }
+
                 if (t->type != Tconstant)
                     {
                         number_of_errors += 1;
@@ -227,7 +232,7 @@ void do_opcode(Token *t)
                 get_token(t);
                 break;
             }
-                
+
         case k_orig:
             /* ORIG value */
             good_stuff = FALSE;
@@ -250,7 +255,7 @@ void do_opcode(Token *t)
             good_stuff = FALSE;
 
             get_token(t);
-            if (t->type == Tconstant) 
+            if (t->type == Tconstant)
                 {
                     entry_point = t->value;
                 }
@@ -327,13 +332,13 @@ void Assemble_File(STRING name)
                             do_opcode(&t1);
                             /* do_opcode will advance the token */
                             break;
-                            
+
                         case Tsymbol:
                             if ((t1.sy == NULL) || (t1.sy->fr != NULL))
                                 {
                                     forward_reference(t1.token_string, line_number, location_counter, TRUE);
                                 }
-                            
+
                         case Tconstant:
                             /* if we already have good stuff here, why do we have another constant
                                or symbol ? */
@@ -359,7 +364,7 @@ void Assemble_File(STRING name)
 
             /* check if this line is just a comment */
             finish_this_line(location_counter, instruction);
-            
+
             if (good_stuff)
                 {
                     Define_Object_Code(location_counter, instruction, FALSE);
@@ -407,7 +412,7 @@ char *change_file_name(STRING name, STRING old_ext, STRING new_ext)
 {
     /* need enough space for the new extension */
     int n = strlen(name) + strlen(old_ext) + 1;
-    
+
     /* make the copy */
     char *news = malloc(n);
     strcpy(news, name);
