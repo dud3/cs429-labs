@@ -1,4 +1,4 @@
-/* 
+/*
    token processing for the assembler
    Take an input line, and break it up into tokens.
 */
@@ -46,7 +46,7 @@ int get_next_line(void)
     save_char('\0');
     line_number += 1;
     token_index = 0;
-    
+
     if ((c == EOF) || (input_line_length == 0))
         return(EOF);
     else
@@ -93,7 +93,7 @@ enum Token_type peek_token_type(void)
 {
     /* skip any leading spaces */
     // Do not skip commas
-    while ((token_index < input_line_length) 
+    while ((token_index < input_line_length)
            && (isspace(input_buffer[token_index]))
            ) token_index += 1;
     /* check for an empty line */
@@ -179,11 +179,11 @@ Boolean parse_constant(Token *t, int *value)
     while (is_valid_digit(input_buffer[token_index], base))
         {
             n = n * base + digit_value(input_buffer[token_index], base);
-            token_index += 1;            
+            token_index += 1;
         }
     *value = sign * n;
 
-    t->token_string = copy_token_string(b0, token_index);    
+    t->token_string = copy_token_string(b0, token_index);
 
     if (isalpha(input_buffer[token_index]))
         return(FALSE);
