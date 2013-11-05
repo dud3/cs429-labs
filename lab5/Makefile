@@ -5,7 +5,7 @@
 CFLAGS=-Wall -O0 -ggdb3
 
 
-asm8:  objmem.o opcodes.o symtab.o token.o asm8.o 
+asm8:  objmem.o opcodes.o symtab.o token.o asm8.o
 	gcc ${CFLAGS} $^ -o asm8
 
 asm8.o: asm8.c asm8.h objmem.h opcode.h symbol.h token.h

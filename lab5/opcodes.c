@@ -1,4 +1,4 @@
-/* 
+/*
    Assembler for PDP-8.  Opcode definition and handling.
 */
 

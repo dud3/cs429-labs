@@ -1,4 +1,4 @@
-/* 
+/*
    Assembler for PDP-8.  Memory and object file creation header file
 */
 

@@ -1,4 +1,4 @@
-/* 
+/*
    Assembler for PDP-8.  Symbol table and forward references.
 */
 
@@ -26,14 +26,14 @@ symbol *search_symbol(char *name)
 symbol *insert_symbol(char *name)
 {
     symbol *s;
-    
+
     s = TYPED_MALLOC(symbol);
     s->name = remember_string(name);
     s->value = 0;
     s->fr = NULL;
     s->next = Root_ST;
     Root_ST = s;
-    
+
     return(s);
 }
 
@@ -66,7 +66,7 @@ void  handle_forward_references(symbol *s)
 
 void forward_reference(char *name, int line_number, Address reference_address, Boolean full)
 {
-    if (debug) fprintf(stderr, "%s forward reference to %s at line %d, address 0x%03X\n", 
+    if (debug) fprintf(stderr, "%s forward reference to %s at line %d, address 0x%03X\n",
                        (full ? "full" : "page"),
                        name, line_number, reference_address);
 
@@ -74,7 +74,7 @@ void forward_reference(char *name, int line_number, Address reference_address, B
     symbol *s = search_symbol(name);
     if (s == NULL)
         s = insert_symbol(name);
-    
+
     struct forward_reference_node *fr = TYPED_MALLOC(struct forward_reference_node);
     fr->addr = reference_address;
     fr->full = full;
@@ -108,7 +108,7 @@ void define_symbol(char *name, Address value)
         {
             if (debug) fprintf(stderr, "symbol %s defined; value = 0x%03X\n", s->name, s->value);
         }
-    
+
     /* define the new value */
     s->value = value;
 

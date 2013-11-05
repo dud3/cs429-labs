@@ -120,12 +120,12 @@ void Read_and_Dump_PDP8_Object_File(FILE *input)
             int addr = get2(input); n -= 2;
             while (n > 0)
                 {
-                    int data = get2(input); n -= 2;            
+                    int data = get2(input); n -= 2;
                     fprintf(stdout, "%03X: %03X\n", addr, data);
                     addr += 1;
                 }
         }
-    
+
     if (debug)
         fprintf(stderr, "EOF\n");
 }

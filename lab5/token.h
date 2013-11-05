@@ -1,4 +1,4 @@
-/* 
+/*
    token processing for the assembler
    Take an input line, and break it up into tokens.
 */

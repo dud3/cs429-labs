@@ -54,7 +54,7 @@ typedef short INST;
 int number_of_errors;
 
 
-/* The assembled instruction.  Plus do we actually have 
+/* The assembled instruction.  Plus do we actually have
    anything (good_stuff) or is there no output. */
 Boolean good_stuff;
 
