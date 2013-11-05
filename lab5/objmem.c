@@ -64,19 +64,40 @@ INST Fetch_Object_Code(Address addr)
     return(inst);
 }
 
-void splitIntoTwoBytes(short org, char* high, char* low) {
-    *high = (org >> 6) & 0x3F;
-    *low = org & 0x3F;
+void splitIntoTwoBytes(short org, char* twoByte) {
+    twoByte[0] = (org >> 6) & 0x3F;
+    twoByte[1] = org & 0x3F;
 }
 
 void Output_Object_Code(void) {
-    char high;
-    char low;
-    int i;
+    char twoByte[2];
+    int i = 0;
     int j;
-    fprintf(output, "OBJ8");
-    splitIntoTwoBytes(entry_point, &high, &low);
-    fprintf(output, "%c%c", high, low);
+    fputs("OBJ8", output);
+    splitIntoTwoBytes(entry_point, twoByte);
+    // TODO try fwrite
+    fwrite(twoByte, 1, 2, output);
+    while (i < 4096) {
+        while (i < 4096 && !defined[i]) {
+            ++i;
+        }
+        for (j = i; j < 4096 && 2 * (j - i) + 3 < 256; ++j) {
+            if (!defined[j]) {
+                break;
+            }
+        }
+        if (i == j) {
+            continue;
+        }
+        fputc(2 * (j - i) + 3, output);
+        splitIntoTwoBytes(i, twoByte);
+        fwrite(twoByte, 1, 2, output);
+        while (i < j) {
+            splitIntoTwoBytes(memory[i], twoByte);
+            fwrite(twoByte, 1, 2, output);
+            ++i;
+        }
+    }
     // fprintf(output, "EP: %03X\n", entry_point);
     // int i;
     // for (i = 0; i < 4096; i++)
