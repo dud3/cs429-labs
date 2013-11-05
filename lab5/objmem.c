@@ -76,17 +76,17 @@ void Output_Object_Code(void) {
     fputs("OBJ8", output);
     splitIntoTwoBytes(entry_point, twoByte);
     fwrite(twoByte, 1, 2, output);
-    while (i < 4096) {
+    while (1) {
         while (i < 4096 && !defined[i]) {
             ++i;
         }
-        for (j = i; j < 4096 && 2 * (j - i) + 3 < 256; ++j) {
+        if (4096 <= i) {
+            break;
+        }
+        for (j = i; j < 4096 && (j - i) < 126; ++j) {
             if (!defined[j]) {
                 break;
             }
-        }
-        if (i == j) {
-            continue;
         }
         fputc(2 * (j - i) + 3, output);
         splitIntoTwoBytes(i, twoByte);
