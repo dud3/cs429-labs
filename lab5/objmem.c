@@ -1,5 +1,5 @@
-/* 
-   Assembler for PDP-8.  Memory and object file creation. 
+/*
+   Assembler for PDP-8.  Memory and object file creation.
 */
 
 #include "asm8.h"
@@ -13,7 +13,7 @@
 /* we want to assemble instructions.  We could assemble and output them
    all at once.  But we have a problem of forward references.  So we
    keep the (partially) assembled instructions in an array of them,
-   essentially simulated memory.  That allows us to come back and 
+   essentially simulated memory.  That allows us to come back and
    fix them up when the forward reference is resolved.
 
    We need to know which memory locations are from assembled
@@ -45,7 +45,7 @@ void Define_Object_Code(Address addr, INST inst, Boolean redefine)
                     addr, memory[addr], inst);
             number_of_errors += 1;
         }
-                
+
     defined[addr] = TRUE;
     memory[addr] = inst;
 }
@@ -64,16 +64,25 @@ INST Fetch_Object_Code(Address addr)
     return(inst);
 }
 
-
-void Output_Object_Code(void)
-{
-    fprintf(output, "EP: %03X\n", entry_point);
-    int i;
-    for (i = 0; i < 4096; i++)
-        {
-            if (defined[i])
-                fprintf(output, "%03X: %03X\n", i, memory[i]);
-        }
+void splitIntoTwoBytes(short org, char* high, char* low) {
+    *high = (org >> 6) & 0x3F;
+    *low = org & 0x3F;
 }
 
+void Output_Object_Code(void) {
+    char high;
+    char low;
+    int i;
+    int j;
+    fprintf(output, "OBJ8");
+    splitIntoTwoBytes(entry_point, &high, &low);
+    fprintf(output, "%c%c", high, low);
+    // fprintf(output, "EP: %03X\n", entry_point);
+    // int i;
+    // for (i = 0; i < 4096; i++)
+    //     {
+    //         if (defined[i])
+    //             fprintf(output, "%03X: %03X\n", i, memory[i]);
+    //     }
+}
 
