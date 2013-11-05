@@ -75,7 +75,6 @@ void Output_Object_Code(void) {
     int j;
     fputs("OBJ8", output);
     splitIntoTwoBytes(entry_point, twoByte);
-    // TODO try fwrite
     fwrite(twoByte, 1, 2, output);
     while (i < 4096) {
         while (i < 4096 && !defined[i]) {
@@ -98,12 +97,5 @@ void Output_Object_Code(void) {
             ++i;
         }
     }
-    // fprintf(output, "EP: %03X\n", entry_point);
-    // int i;
-    // for (i = 0; i < 4096; i++)
-    //     {
-    //         if (defined[i])
-    //             fprintf(output, "%03X: %03X\n", i, memory[i]);
-    //     }
 }
 
