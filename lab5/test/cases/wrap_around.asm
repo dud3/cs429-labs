@@ -1,0 +1,5 @@
+		ORIG 4095
+max, 0xFFF
+
+		ORIG 0
+		HLT
