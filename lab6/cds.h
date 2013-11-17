@@ -63,6 +63,23 @@ struct cache_line
 };
 typedef struct cache_line cache_line;
 
+// Victim Cache
+typedef struct {
+    char valid;
+    char dirty;
+    int address;
+    int replacementData;
+} VictimCacheLine;
+
+typedef struct {
+    int entries;
+    int totalCacheAccess;
+    int totalCacheHits;
+    int totalCacheMisses;
+    int totalMissReads;
+    int totalMissWrites;
+    VictimCacheLine* cacheLine;
+} VictimCache;
 
 struct cache
 {
@@ -77,7 +94,7 @@ struct cache
     int         LFU_Decay_Interval;
 
     /* array of cache lines */
-    cache_line *c_line;
+    cache_line* c_line;
     int         number_of_cache_entries;
 
     counter_t number_total_cache_access;
@@ -86,6 +103,7 @@ struct cache
 
     counter_t number_miss_reads;
     counter_t number_miss_writes;
+    VictimCache victimCache;
 };
 
 
@@ -101,7 +119,7 @@ struct CDS
 
     String      name;
 
-    struct cache *c;
+    struct cache* c;
 
     /* statistics for each cache policy */
     counter_t number_of_memory_reference;

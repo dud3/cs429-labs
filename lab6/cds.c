@@ -148,21 +148,19 @@ void Print_Cache_Statistics(void)
 /* ***************************************************************** */
 
 
-void init_cache(CDS *cds)
-{
+void initCache(CDS* cds) {
     /* we need one cache line for every entry */
-    cds->c->c_line = CAST(cache_line *, calloc(cds->c->number_of_cache_entries, sizeof(cache_line)));
+    cds->c->c_line = (cache_line*) calloc(cds->c->number_of_cache_entries, sizeof(cache_line));
+    cds->c->victimCache.cacheLine = (VictimCacheLine*) calloc(cds->c->victimCache.entries, sizeof(VictimCacheLine));
 }
 
 
-void Init_Caches(void)
-{
-    CDS *cds = CDS_root;
-    while (cds != NULL)
-        {
-            init_cache(cds);
-            cds = cds->next;
-        }
+void initCaches() {
+    CDS* cds = CDS_root;
+    while (cds != NULL) {
+        initCache(cds);
+        cds = cds->next;
+    }
 }
 
 
@@ -171,28 +169,30 @@ void Init_Caches(void)
 /*                                                                   */
 /* ***************************************************************** */
 
-void init_cache_for_trace(CDS *cds)
-{
+void initCacheForTrace(CDS* cds) {
     int i;
-    for (i = 0; i < NUMBER_OF_MEMORY_ACCESS_TYPE; i++) cds->number_of_type[i] = 0;
-
+    for (i = 0; i < NUMBER_OF_MEMORY_ACCESS_TYPE; ++i) {
+        cds->number_of_type[i] = 0;
+    }
     cds->number_of_memory_reference = 0;
     cds->c->number_miss_reads = 0;
     cds->c->number_miss_writes = 0;
-
     cds->c->number_total_cache_access = 0;
     cds->c->number_cache_hits = 0;
     cds->c->number_cache_misses = 0;
+    cds->c->victimCache.totalCacheAccess = 0;
+    cds->c->victimCache.totalCacheHits = 0;
+    cds->c->victimCache.totalCacheMisses = 0;
+    cds->c->victimCache.totalMissReads = 0;
+    cds->c->victimCache.totalMissWrites = 0;
 }
 
-void Init_caches_for_trace(void)
-{
-    CDS *cds = CDS_root;
-    while (cds != NULL)
-        {
-            init_cache_for_trace(cds);
-            cds = cds->next;
-        }
+void initCachesForTrace() {
+    CDS* cds = CDS_root;
+    while (cds != 0) {
+        initCacheForTrace(cds);
+        cds = cds->next;
+    }
 }
 
 
@@ -203,32 +203,27 @@ void Init_caches_for_trace(void)
 /* ***************************************************************** */
 
 
-void delete_one_cache(struct cache *c)
-{
+void deleteCacheLine(struct cache* c) {
     free(c->c_line);
     free(c->name);
+    if (c->victimCache.entries) {
+        free(c->victimCache.cacheLine);
+    }
 }
 
-void delete_cache(CDS *cds)
-{
-    /* we need one cache line for every entry */
-    delete_one_cache(cds->c);
-
+void deleteCache(CDS* cds) {
+    deleteCacheLine(cds->c);
     free(cds->c);
     free(cds->name);
     free(cds);
 }
 
-
-void Delete_Caches(void)
-{
-    CDS *cds = CDS_root;
-    while (cds != NULL)
-        {
-            CDS *old = cds;
-            cds = cds->next;
-            delete_cache(old);
-        }
+void deleteCaches() {
+    CDS* cds = CDS_root;
+    while (cds != 0) {
+        CDS* old = cds;
+        cds = cds->next;
+        deleteCache(old);
+    }
 }
-
 

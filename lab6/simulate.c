@@ -32,8 +32,7 @@ static int trace_line_number;
 
 /* read on input line */
 
-void read_reference(FILE *trace_file, memory_reference *reference)
-{
+void readReference(FILE* trace_file, memory_reference* reference) {
     int c;
     /* we have the first character; it defined the
        memory access type.  Skip any blanks, get the
@@ -41,32 +40,27 @@ void read_reference(FILE *trace_file, memory_reference *reference)
 
     /* skip any leading blanks */
     c = skip_blanks(trace_file);
-
     memory_address a = 0;
-    while (ishex(c))
-        {
-            a = (a << 4) | hexvalue(c);
-            c = getc(trace_file);
-        }
-    if (c != ',')
-        {
-            fprintf(stderr, "bad trace file input at line %d: %c\n", trace_line_number, c);
-            exit(-1);
-        }
-
+    while (ishex(c)) {
+        a = (a << 4) | hexvalue(c);
+        c = getc(trace_file);
+    }
+    if (c != ',') {
+        fprintf(stderr, "bad trace file input at line %d: %c\n", trace_line_number, c);
+        exit(-1);
+    }
     /* skip the comma */
     /* and get the length */
     int n = 0;
     c = getc(trace_file);
-    while (isdigit(c))
-        {
-            n = n * 10 + decvalue(c);
-            c = getc(trace_file);
-        }
-
+    while (isdigit(c)) {
+        n = n * 10 + decvalue(c);
+        c = getc(trace_file);
+    }
     /* skip to end of line */
-    while ((c != '\n') && (c != EOF)) c = getc(trace_file);
-
+    while ((c != '\n') && (c != EOF)) {
+        c = getc(trace_file);
+    }
     /* define reference fields */
     reference->address = a;
     reference->length = n;
@@ -100,7 +94,7 @@ int Read_trace_file_line(FILE *trace_file, memory_reference *reference)
                 case 'I': /* instruction trace */
                     {
                         reference->type = MAT_FETCH;
-                        read_reference(trace_file, reference);
+                        readReference(trace_file, reference);
                         return('I');
                     }
 
@@ -108,14 +102,14 @@ int Read_trace_file_line(FILE *trace_file, memory_reference *reference)
                 case 'S': /* store */
                     {
                         reference->type = MAT_STORE;
-                        read_reference(trace_file, reference);
+                        readReference(trace_file, reference);
                         return('S');
                     }
 
                 case 'L': /* load */
                     {
                         reference->type = MAT_LOAD;
-                        read_reference(trace_file, reference);
+                        readReference(trace_file, reference);
                         return('L');
                     }
                 }
@@ -483,33 +477,24 @@ void Simulate_Reference_to_Memory(CDS *cds, memory_reference *reference)
 /* read each input line, and then simulate that reference on each
    cache. */
 
-void Simulate_Caches(String trace_file_name)
-{
-    FILE *trace_file;
+void simulateCaches(char* traceFileName) {
+    FILE* traceFile;
     memory_reference reference;
-
-    /* open input file */
-    trace_file = fopen(trace_file_name, "r");
-    if (trace_file == NULL)
-        {
-            fprintf (stderr,"Cannot open trace file %s\n", trace_file_name);
-            exit(1);
+    traceFile = fopen(traceFileName, "r");
+    if (traceFile == 0) {
+        fprintf (stderr,"Cannot open trace file %s\n", traceFileName);
+        exit(1);
+    }
+    initCachesForTrace();
+    while (Read_trace_file_line(traceFile, &reference) != EOF) {
+        CDS* cds = CDS_root;
+        while (cds != NULL) {
+            Simulate_Reference_to_Memory(cds, &reference);
+            cds = cds->next;
         }
-
-    Init_caches_for_trace();
-
-    while (Read_trace_file_line(trace_file, &reference) != EOF)
-        {
-            CDS *cds = CDS_root;
-            while (cds != NULL)
-                {
-                    Simulate_Reference_to_Memory(cds, &reference);
-                    cds = cds->next;
-                }
-        }
-    fclose(trace_file);
+    }
+    fclose(traceFile);
 }
-
 
 int number_dirty_lines(struct cache *c)
 {

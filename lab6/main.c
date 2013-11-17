@@ -21,9 +21,8 @@ Boolean debug = FALSE;
 /*                                                                   */
 /* ***************************************************************** */
 
-void usage(void)
-{
-    fprintf (stderr,"usage: caches [-d] cache-descriptions-file  memory-trace-file\n");
+void usage(void) {
+    fprintf (stderr,"usage: caches [-D] cache-descriptions-file  memory-trace-file\n");
 }
 
 void scanargs(String s)
@@ -85,12 +84,11 @@ int main(int argc, String *argv)
         }
 
     Read_Cache_Descriptions(argv[0]);
-    Init_Caches();
-
-    Simulate_Caches(argv[1]);
-
+    initCaches();
+    simulateCaches(argv[1]);
     Print_Cache_Statistics();
-    Delete_Caches();
+    deleteCaches();
 
     exit(0);
 }
+

@@ -140,17 +140,18 @@ int get_key_value_pair(FILE *CDS_file, Token *key, Token *value)
 }
 
 
-void define_key_value_pair(CDS *cds, Token *key, Token *value)
-{
-    if (debug) fprintf(debug_file, "define %s = %s \n", key->string, value->string);
-
+void defineKeyValuePair(CDS* cds, Token* key, Token* value) {
+    if (debug) {
+        fprintf(debug_file, "define %s = %s \n", key->string, value->string);
+    }
     /* look for the name */
-    if (strcasestr(key->string, "name") != NULL)
-        {
-            if (cds->name != NULL) free(cds->name);
-            cds->name = remember_string(value->string);
-            return;
+    if (strcasestr(key->string, "name") != NULL) {
+        if (cds->name != 0) {
+            free(cds->name);
         }
+        cds->name = remember_string(value->string);
+        return;
+    }
 
     /* look for line size */
     if ((strcasestr(key->string, "line") != NULL) && (strcasestr(key->string, "size") != NULL))
@@ -232,13 +233,22 @@ void define_key_value_pair(CDS *cds, Token *key, Token *value)
         }
 
     /* look for line size */
-    if ((strcasestr(key->string, "decay") != NULL) && (strcasestr(key->string, "interval") != NULL))
-        {
-            int n = atoi(value->string);
-            cds->c->LFU_Decay_Interval = n;
-            return;
-        }
-
+    if ((strcasestr(key->string, "decay") != NULL) && (strcasestr(key->string, "interval") != NULL)) {
+        int n = atoi(value->string);
+        cds->c->LFU_Decay_Interval = n;
+        return;
+    }
+    if (strcasestr(key->string, "ways") != NULL) {
+        int n = atoi(value->string);
+        cds->c->number_of_ways = n;
+        return;
+    }
+    // Define victim cache
+    if (strcasestr(key->string, "victim") != 0) {
+        int n = atoi(value->string);
+        cds->c->victimCache.entries = n;
+        return;
+    }
     fprintf(stderr, "don't understand %s = %s\n",key->string, value->string);
 }
 
@@ -248,8 +258,7 @@ void define_key_value_pair(CDS *cds, Token *key, Token *value)
 /*                                                                   */
 /* ***************************************************************** */
 
-CDS *Read_CDS_file_entry(FILE *CDS_file)
-{
+CDS* Read_CDS_file_entry(FILE *CDS_file) {
     int c;
 
     c = skip_blanks(CDS_file);
@@ -271,9 +280,9 @@ CDS *Read_CDS_file_entry(FILE *CDS_file)
 
     /* starting a new cache description.  Get a structure,
        and fill in default values. */
-    CDS *cds = CAST(CDS *,calloc(1,sizeof(CDS)));
-    cds->name = remember_string("dummy");
-    cds->c = CAST(struct cache *,calloc(1,sizeof(struct cache)));
+    CDS* cds = (CDS*) malloc(sizeof(CDS));
+    cds->c = (struct cache*) malloc(sizeof(struct cache));
+    cds->name = 0;
 
     /* default values */
     cds->c->cache_line_size = 64;
@@ -283,21 +292,22 @@ CDS *Read_CDS_file_entry(FILE *CDS_file)
     cds->c->replacement_policy = CRP_FIFO;
     cds->c->LFU_Decay_Interval = 200000;
     cds->c->c_line = NULL;
+    cds->c->victimCache.entries = 0;
 
-    Token *key = new_token();
-    Token *value = new_token();
-    while (((c = get_key_value_pair(CDS_file, key, value)) != EOF) && (c != '}'))
-        {
-            define_key_value_pair(cds, key, value);
-        }
+    Token* key = new_token();
+    Token* value = new_token();
+    while (((c = get_key_value_pair(CDS_file, key, value)) != EOF) && (c != '}')) {
+        defineKeyValuePair(cds, key, value);
+    }
     delete_token(key);
     delete_token(value);
 
     cds->c->name = remember_string(cds->name);
 
-    if (debug) debug_print_cds(cds);
-
-    return(cds);
+    if (debug) {
+        debug_print_cds(cds);
+    }
+    return cds;
 }
 
 
