@@ -25,6 +25,6 @@ simulate.o: simulate.c global.h cds.h caches.h utils.h
 utils.o: utils.c global.h utils.h
 	gcc $(CFLAGS) utils.c -c
 
-clean: 
+clean:
 	rm -f *.o cachesim
 

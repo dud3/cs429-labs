@@ -63,12 +63,12 @@ void scanargs(String s)
 
 int main(int argc, String *argv)
 {
-    /* main driver program.  There are two input 
+    /* main driver program.  There are two inpu
        files.
        1. defines the caches
        2. defines the memory trace
     */
-       
+
     /* Process all arguments. */
     /* skip program name */
     argc--, argv++;

@@ -41,7 +41,7 @@ void read_reference(FILE *trace_file, memory_reference *reference)
 
     /* skip any leading blanks */
     c = skip_blanks(trace_file);
-    
+
     memory_address a = 0;
     while (ishex(c))
         {
@@ -53,11 +53,11 @@ void read_reference(FILE *trace_file, memory_reference *reference)
             fprintf(stderr, "bad trace file input at line %d: %c\n", trace_line_number, c);
             exit(-1);
         }
-  
+
     /* skip the comma */
     /* and get the length */
     int n = 0;
-    c = getc(trace_file);    
+    c = getc(trace_file);
     while (isdigit(c))
         {
             n = n * 10 + decvalue(c);
@@ -121,7 +121,7 @@ int Read_trace_file_line(FILE *trace_file, memory_reference *reference)
                 }
 
             /* apparently not a reference line.  There are a bunch
-               of other lines that valgrind puts out.  They start
+               of other lines that valgrind puts out.  They star
                with  ====, or --, or such.  Skip the entire line. */
             /* skip to end of line */
             while ((c != '\n') && (c != EOF)) c = getc(trace_file);
@@ -135,7 +135,7 @@ int Read_trace_file_line(FILE *trace_file, memory_reference *reference)
 /*                                                                   */
 /* ***************************************************************** */
 
-/* LFU counts the number of times something is used.  To prevent
+/* LFU counts the number of times something is used.  To preven
    a large number from just sitting there, we cause it to decay
    over time.  Every "tick" time units, we shift left one bit,
    so that eventually a count will go to zero if it is not continuing
@@ -173,7 +173,7 @@ memory_address Base_Cache_Address(struct cache *c, memory_address a)
 
 int Compute_Set_Index(struct cache *c, memory_address cache_address)
 {
-    /* shift off low-order offset bits and find bits for 
+    /* shift off low-order offset bits and find bits for
        indexing into cache table */
     /* the number of sets is the number of cache entries
        divided by the number of ways. */
@@ -196,9 +196,9 @@ int Compute_Set_Index(struct cache *c, memory_address cache_address)
 int Search_Cache_For(struct cache *c, memory_address cache_address)
 {
     int cache_entry_index = Compute_Set_Index(c, cache_address);
-    
+
     if (debug) fprintf(debug_file, "%s: search cache lines %d to %d for 0x%08X\n",
-                       c->name, cache_entry_index, 
+                       c->name, cache_entry_index,
                        cache_entry_index+c->number_of_ways-1, cache_address);
 
     /* index into cache table and search the number of ways to
@@ -206,14 +206,14 @@ int Search_Cache_For(struct cache *c, memory_address cache_address)
     int i;
     for (i = 0; i < c->number_of_ways; i++)
         {
-            if (c->c_line[cache_entry_index+i].valid 
+            if (c->c_line[cache_entry_index+i].valid
                 && (cache_address == c->c_line[cache_entry_index+i].tag))
                 {
                     c->number_cache_hits += 1;
                     return(cache_entry_index+i);
                 }
         }
-    c->number_cache_misses += 1;    
+    c->number_cache_misses += 1;
     return(-1);
 }
 
@@ -227,11 +227,11 @@ int Find_Victim_by_Replacement_Policy(struct cache *c, memory_address cache_addr
 {
     int i;
     int victim;
-    
+
     int first_index = Compute_Set_Index(c, cache_address);
     int set_size = c->number_of_ways;
     if (debug) fprintf(debug_file, "%s: look for victim in %d lines starting at %d\n", c->name,  set_size, first_index);
-    
+
     /* first look to see if any entry is empty */
     for (i = 0; i < set_size; i++)
         {
@@ -242,14 +242,14 @@ int Find_Victim_by_Replacement_Policy(struct cache *c, memory_address cache_addr
                     return(victim);
                 }
         }
-    
+
     /* No empty cache line entry */
     victim = first_index; /* default victim */
     switch (c->replacement_policy)
         {
         case CRP_FIFO:  /* replacement data is the order we were brought in: 1, 2, 3, ... */
                     /* choose the smallest */
-            
+
         case CRP_LRU:  /* replacement data is the time we were last hit */
                     /* choose the smallest */
 
@@ -270,8 +270,8 @@ int Find_Victim_by_Replacement_Policy(struct cache *c, memory_address cache_addr
                 if (debug) fprintf(debug_file, "\n");
             }
             break;
-                              
-        case CRP_RANDOM:  
+
+        case CRP_RANDOM:
             victim = first_index + (random() % set_size);
             break;
         }
@@ -283,7 +283,7 @@ int Find_Victim_by_Replacement_Policy(struct cache *c, memory_address cache_addr
 
 void evict_dirty_line_from_cache(struct cache *c, cache_line *victim_line)
 {
-    if (debug) fprintf(debug_file, "%s: Write dirty victim 0x%08X\n", 
+    if (debug) fprintf(debug_file, "%s: Write dirty victim 0x%08X\n",
                        c->name,  victim_line->tag);
     c->number_miss_writes += 1;
 }
@@ -296,16 +296,16 @@ void Set_Replacement_Policy_Data(counter_t time, struct cache *c, cache_line *ca
         case CRP_FIFO:  /* replacement data is the order we were brought in: 1, 2, 3, ... */
             cache_entry->replacement_data = time;
             break;
-            
+
         case CRP_LRU:  /* replacement data is the time we were last hit */
             cache_entry->replacement_data = time;
             break;
-            
+
         case CRP_LFU:  /* replacement data is a count; starts at zero */
             cache_entry->replacement_data = 0;
             Check_For_Decay(time, c);
-            
-        case CRP_RANDOM:  
+
+        case CRP_RANDOM:
             break;
         }
 }
@@ -316,16 +316,16 @@ void Update_Replacement_Policy_Data(counter_t time, struct cache *c, cache_line 
         {
         case CRP_FIFO:  /* replacement data is the order we were brought in: 1, 2, 3, ... */
             break;
-            
+
         case CRP_LRU:  /* replacement data is the time we were last hit */
             cache_entry->replacement_data = time;
             break;
-            
+
         case CRP_LFU:  /* replacement data is the count of the number of uses */
             cache_entry->replacement_data += 1;
             Check_For_Decay(time, c);
-            
-        case CRP_RANDOM:  
+
+        case CRP_RANDOM:
             break;
         }
 }
@@ -352,7 +352,7 @@ Boolean evict_from_cache(CDS *cds, cache_line *victim_line, memory_address cache
         {
             evict_dirty_line_from_cache(cds->c, victim_line);
         }
-            
+
     return(FALSE);
 }
 
@@ -370,21 +370,21 @@ void Simulate_Reference_to_Cache_Line(CDS *cds, memory_reference *reference)
     if (debug) fprintf(debug_file, "%s: %s Reference 0x%08X of length %d\n",
                        cds->name, memory_reference_type_name(reference->type),
                        reference->address, reference->length);
-    
+
     cds->c->number_total_cache_access += 1;
-    
+
     /* find cache line for this reference */
     /* find number of low-order bits to mask off to find beginning cache
        line address */
-    
+
     memory_address cache_address = Base_Cache_Address(cds->c, reference->address);
-    
+
     int cache_entry_index = Search_Cache_For(cds->c, cache_address);
     if (cache_entry_index >= 0)
         {
             /* found it -- record cache hit */
             Found = TRUE;
-            if (debug) fprintf(debug_file, "%s: Found address 0x%08X in cache line %d\n", cds->name, 
+            if (debug) fprintf(debug_file, "%s: Found address 0x%08X in cache line %d\n", cds->name,
                                reference->address, cache_entry_index);
             cache_entry = &(cds->c->c_line[cache_entry_index]);
         }
@@ -392,23 +392,23 @@ void Simulate_Reference_to_Cache_Line(CDS *cds, memory_reference *reference)
         {
             /* Did not find it. */
             Found = FALSE;
-            
+
             /* Choose a victim from the set */
             cache_entry_index = Find_Victim_by_Replacement_Policy(cds->c, cache_address);
             cache_entry = &(cds->c->c_line[cache_entry_index]);
             if (debug) fprintf(debug_file, "%s: Pick victim %d to replace\n", cds->name,  cache_entry_index);
-            
+
             /* evict victim */
             if (cache_entry->valid)
                 Found = evict_from_cache(cds, cache_entry, cache_address);
-            
+
             if (!Found)
                 {
                     /* fill in evicted cache line for this new line */
                     cache_entry->valid = TRUE;
                     cache_entry->tag = cache_address;
                     cache_entry->dirty = FALSE;
-                    
+
                     /* read cache line from memory into cache table */
                     if (debug) fprintf(debug_file, "%s: Read cache line 0x%08X into entry %d\n", cds->name,  cache_entry->tag, cache_entry_index);
                     cds->c->number_miss_reads += 1;
@@ -416,7 +416,7 @@ void Simulate_Reference_to_Cache_Line(CDS *cds, memory_reference *reference)
         }
 
     /* update reference specific info */
-    if (reference->type == MAT_STORE) 
+    if (reference->type == MAT_STORE)
         {
             /* If it's not write-back, then it is write-thru.
                For write-thru, if it's a write, we write to memory. */
@@ -429,7 +429,7 @@ void Simulate_Reference_to_Cache_Line(CDS *cds, memory_reference *reference)
                 /* For write-back, if it's a write, it's dirty. */
                 cache_entry->dirty = TRUE;
         }
-    
+
     if (!Found)
         Set_Replacement_Policy_Data(cds->number_of_memory_reference, cds->c, cache_entry);
     else

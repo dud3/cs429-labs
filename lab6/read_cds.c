@@ -240,7 +240,7 @@ void define_key_value_pair(CDS *cds, Token *key, Token *value)
         }
 
     fprintf(stderr, "don't understand %s = %s\n",key->string, value->string);
-} 
+}
 
 
 /* ***************************************************************** */
@@ -296,7 +296,7 @@ CDS *Read_CDS_file_entry(FILE *CDS_file)
     cds->c->name = remember_string(cds->name);
 
     if (debug) debug_print_cds(cds);
-    
+
     return(cds);
 }
 
@@ -320,7 +320,7 @@ void Read_Cache_Descriptions(String CDS_file_name)
     while ((cds = Read_CDS_file_entry(CDS_file)) != NULL)
         {
             /* we use a linked list for all the cache descriptions,
-               but we want to keep the list in the same order that
+               but we want to keep the list in the same order tha
                we read them in.  Bummer. */
             if (CDS_root == NULL)
                 {

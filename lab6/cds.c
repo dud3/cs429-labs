@@ -21,7 +21,7 @@ String print_sets_and_ways(struct cache *c)
     if (c->number_of_ways == c->number_of_cache_entries) return("fully associative");
 
     static char buffer[64];
-    sprintf (buffer, "%d sets of %d ways", 
+    sprintf (buffer, "%d sets of %d ways",
              c->number_of_cache_entries/c->number_of_ways, c->number_of_ways);
     return(buffer);
 }
@@ -57,7 +57,7 @@ String CRP_name(struct cache *c)
         case CRP_LRU:    return("LRU");
         case CRP_RANDOM: return("RANDOM");
 
-        case CRP_LFU: 
+        case CRP_LFU:
             {
                 static char buffer[64];
                 sprintf(buffer, "LFU (decay=%d)", c->LFU_Decay_Interval);
@@ -106,12 +106,12 @@ void Print_Cache_Statistics_for_one_cache(struct cache *c)
             print_sets_and_ways(c),
             c->write_back ? "write-back" : "write-thru",
             CRP_name(c));
-    
+
     fprintf(stdout, "%s: %d accesses, %d hits (%d%%), %d misses, %d miss reads, %d miss writes\n",
             c->name, c->number_total_cache_access,
             c->number_cache_hits, percent(c->number_cache_hits, c->number_total_cache_access),
             c->number_cache_misses, c->number_miss_reads, c->number_miss_writes);
-    
+
     if (c->write_back)
         fprintf(stdout, "%s: %d dirty cache lines remain\n", c->name, number_dirty_lines(c));
 }
@@ -120,13 +120,13 @@ void Print_Cache_Statistics_for_one_cache(struct cache *c)
 void Print_Cache_Statistics_for_one_cds(CDS *cds)
 {
     fprintf(stdout, "      %d addresses (%d %s, %d %s, %d %s)\n",
-            cds->number_of_memory_reference, 
-            cds->number_of_type[MAT_FETCH], memory_reference_type_name(MAT_FETCH), 
-            cds->number_of_type[MAT_LOAD], memory_reference_type_name(MAT_LOAD), 
+            cds->number_of_memory_reference,
+            cds->number_of_type[MAT_FETCH], memory_reference_type_name(MAT_FETCH),
+            cds->number_of_type[MAT_LOAD], memory_reference_type_name(MAT_LOAD),
             cds->number_of_type[MAT_STORE], memory_reference_type_name(MAT_STORE));
-    
+
     Print_Cache_Statistics_for_one_cache(cds->c);
-    
+
     fprintf(stdout, "\n");
 }
 
