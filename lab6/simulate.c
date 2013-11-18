@@ -95,7 +95,7 @@ int Read_trace_file_line(FILE *trace_file, memory_reference *reference)
                     {
                         reference->type = FETCH;
                         readReference(trace_file, reference);
-                        return('I');
+                        return 'I';
                     }
 
                 case 'M': /* read/modify/write -- treat as a store */
@@ -103,14 +103,14 @@ int Read_trace_file_line(FILE *trace_file, memory_reference *reference)
                     {
                         reference->type = STORE;
                         readReference(trace_file, reference);
-                        return('S');
+                        return 'S';
                     }
 
                 case 'L': /* load */
                     {
                         reference->type = LOAD;
                         readReference(trace_file, reference);
-                        return('L');
+                        return 'L';
                     }
                 }
 
@@ -120,7 +120,7 @@ int Read_trace_file_line(FILE *trace_file, memory_reference *reference)
             /* skip to end of line */
             while ((c != '\n') && (c != EOF)) c = getc(trace_file);
         }
-    return(EOF);
+    return EOF;
 }
 
 
@@ -162,7 +162,7 @@ int getBaseCacheAddress(struct cache *c, int a)
     int number_of_low_order_bits = which_power(c->cache_line_size);
     int low_order_mask = mask_of(number_of_low_order_bits);
     int cache_address = a & (~low_order_mask);
-    return(cache_address);
+    return cache_address;
 }
 
 int Compute_Set_Index(struct cache *c, int cache_address)
@@ -177,7 +177,7 @@ int Compute_Set_Index(struct cache *c, int cache_address)
     int sets_bits_mask = mask_of(sets_bits);
     int cache_set_index = (cache_address >> number_of_low_order_bits) & sets_bits_mask;
     int cache_entry_index = cache_set_index * c->numberOfWays;
-    return(cache_entry_index);
+    return cache_entry_index;
 }
 
 
@@ -200,11 +200,11 @@ int searchCacheFor(struct cache* c, int cache_address) {
     for (i = 0; i < c->numberOfWays; i++) {
         if (c->c_line[cache_entry_index+i].valid && (cache_address == c->c_line[cache_entry_index+i].tag)) {
             c->number_cache_hits += 1;
-            return(cache_entry_index+i);
+            return cache_entry_index+i;
         }
     }
     c->number_cache_misses += 1;
-    return(-1);
+    return -1;
 }
 
 int searchVictimCacheFor(VictimCache* victimCache, int cacheAddress) {
@@ -240,7 +240,7 @@ int Find_Victim_by_Replacement_Policy(struct cache *c, int cache_address)
                 {
                     victim = first_index+i;
                     if (debug) fprintf(debugFile, "%s: found empty cache entry at %d\n", c->name,  victim);
-                    return(victim);
+                    return victim;
                 }
         }
 
@@ -278,7 +278,7 @@ int Find_Victim_by_Replacement_Policy(struct cache *c, int cache_address)
         }
 
     if (debug) fprintf(debugFile, "%s: found victim in entry %d\n", c->name,  victim);
-    return(victim);
+    return victim;
 }
 
 
@@ -501,5 +501,5 @@ int countDirtyLines(struct cache *c)
                     if (debug) fprintf(debugFile, "%s: Cache Line 0x%08X is dirty\n", c->name, c->c_line[i].tag);
                 }
         }
-    return(n);
+    return n;
 }

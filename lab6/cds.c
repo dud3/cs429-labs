@@ -7,7 +7,7 @@ const char* printSetsAndWays(Cache* cache) {
         return "direct-mapped";
     }
     if (cache->numberOfWays == cache->entries) {
-        return("fully associative");
+        return "fully associative";
     }
     static char buffer[64];
     sprintf(buffer, "%d sets of %d ways", cache->entries / cache->numberOfWays, cache->numberOfWays);
@@ -26,23 +26,22 @@ const char* memoryAccessTypeName(enum MemoryAccessType type) {
     return "invalid";
 }
 
-char* CRP_name(struct cache *c)
-{
-    switch(c->replacement_policy)
-        {
-        case CRP_FIFO:   return("FIFO");
-        case CRP_LRU:    return("LRU");
-        case CRP_RANDOM: return("RANDOM");
+const char* cacheReplacementPolicyName(Cache *c) {
+    switch(c->replacement_policy) {
+        case FIFO:
+            return "FIFO";
+        case LRU:    return "LRU";
+        case RANDOM: return "RANDOM";
 
-        case CRP_LFU:
+        case LFU:
             {
                 static char buffer[64];
                 sprintf(buffer, "LFU (decay=%d)", c->LFU_Decay_Interval);
-                return(buffer);
+                return buffer;
             }
 
         };
-    return("Invalid policy");
+    return "Invalid policy";
 }
 
 
@@ -70,9 +69,9 @@ void debugPrintCds(CDS *cds)
 
 int percent(int a, int b)
 {
-    if (b == 0) return(0);
+    if (b == 0) return 0;
     int n = (a*100/b);
-    return(n);
+    return n;
 }
 
 

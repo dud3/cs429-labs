@@ -31,7 +31,7 @@ Token *new_token(void)
     Token *t = (Token*) malloc(sizeof(Token));
     t->length = MIN_TOKEN_SIZE;
     t->string = (char*) malloc(t->length);
-    return(t);
+    return t;
 }
 
 void delete_token(Token *t)
@@ -99,8 +99,8 @@ int get_key_value_pair(FILE *CDS_file, Token *key, Token *value)
 
     /* skip initial spaces */
     c = skip_blanks(CDS_file);
-    if (c == EOF) return(EOF);
-    if (c == '}') return(EOF);
+    if (c == EOF) return EOF;
+    if (c == '}') return EOF;
 
     /* went one too far, put it back */
     ungetc(c, CDS_file);
@@ -110,11 +110,11 @@ int get_key_value_pair(FILE *CDS_file, Token *key, Token *value)
 
     /* skip spacing, look for "=" */
     c = skip_blanks(CDS_file);
-    if (c == EOF) return(EOF);
+    if (c == EOF) return EOF;
     if ((c != '=') && (c != ':') && (c != '-'))
         {
             fprintf(stderr, "not key=value pair: %s %c\n", key->string, c);
-            return(EOF);
+            return EOF;
         }
 
     /* we want a second string for the value */
@@ -122,21 +122,21 @@ int get_key_value_pair(FILE *CDS_file, Token *key, Token *value)
 
     /* skip spacing, look for "," */
     c = skip_blanks(CDS_file);
-    if (c == EOF) return(EOF);
+    if (c == EOF) return EOF;
     if ((c != ',') && (c != ';') && (c != '}'))
         {
             fprintf(stderr, "not key=value pair: %s %c\n", key->string, c);
-            return(EOF);
+            return EOF;
         }
     if (c == '}')
         {
             /* we have the last pair, terminated by a '}'.
                put it back, so that this last pair is processed */
             ungetc(c, CDS_file);
-            return(',');
+            return ',';
         }
 
-    return(c);
+    return c;
 }
 
 
@@ -266,7 +266,7 @@ CDS* Read_CDS_file_entry(FILE *CDS_file) {
         {
             c = skip_line(CDS_file);
         }
-    if (c == EOF) return(NULL);
+    if (c == EOF) return NULL;
 
     /* Syntax for Cache Descriptions:  { key=value, key=value, ... } */
     /* So, we read a key and a value and define the field of the
@@ -275,7 +275,7 @@ CDS* Read_CDS_file_entry(FILE *CDS_file) {
     if (c != '{')
         {
             fprintf(stderr, "Cache description should start with {, not %c\n", c);
-            return(NULL);
+            return NULL;
         }
 
     /* starting a new cache description.  Get a structure,
