@@ -157,7 +157,7 @@ void defineKeyValuePair(CDS* cds, Token* key, Token* value) {
     if ((strcasestr(key->string, "line") != 0) && (strcasestr(key->string, "size") != 0))
         {
             int n = atoi(value->string);
-            cds->c->cache_line_size = n;
+            cds->c->cacheLineSize = n;
             return;
         }
 
@@ -285,7 +285,7 @@ CDS* Read_CDS_file_entry(FILE *CDS_file) {
     cds->name = 0;
 
     /* default values */
-    cds->c->cache_line_size = 64;
+    cds->c->cacheLineSize = 64;
     cds->c->entries = 1024;
     cds->c->numberOfWays = 2;
     cds->c->write_back = 1;

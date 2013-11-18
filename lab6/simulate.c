@@ -159,7 +159,7 @@ int getBaseCacheAddress(struct cache *c, int a)
 {
     /* find number of low-order bits to mask off to find beginning cache
        line address */
-    int number_of_low_order_bits = which_power(c->cache_line_size);
+    int number_of_low_order_bits = which_power(c->cacheLineSize);
     int low_order_mask = mask_of(number_of_low_order_bits);
     int cache_address = a & (~low_order_mask);
     return cache_address;
@@ -171,7 +171,7 @@ int Compute_Set_Index(struct cache *c, int cache_address)
        indexing into cache table */
     /* the number of sets is the number of cache entries
        divided by the number of ways. */
-    int number_of_low_order_bits = which_power(c->cache_line_size);
+    int number_of_low_order_bits = which_power(c->cacheLineSize);
     int number_of_sets = c->entries/c->numberOfWays;
     int sets_bits = which_power(number_of_sets);
     int sets_bits_mask = mask_of(sets_bits);

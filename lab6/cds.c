@@ -63,10 +63,9 @@ int percent(int a, int b) {
     return a * 100 / b;
 }
 
-void printCacheStatisticsForCache(Cache* cache)
-{
+void printCacheStatisticsForCache(Cache* cache) {
     fprintf(stdout, "%s: %d entries of lines of %d bytes; %s, %s, %s\n",
-            c->name, c->entries, c->cache_line_size,
+            c->name, c->entries, c->cacheLineSize,
             printSetsAndWays(c),
             c->write_back ? "write-back" : "write-thru",
             CRP_name(c));
