@@ -13,24 +13,19 @@ static int traceLineNumber;
 
 void readReference(FILE* traceFile, MemoryReference* reference) {
     int c;
-    /* we have the first character; it defined the
-       memory access type.  Skip any blanks, get the
-       hexadecimal address, skip the comma and get the length */
-
-    /* skip any leading blanks */
+    int address;
+    int n;
     c = skipBlanks(traceFile);
-    int a = 0;
-    while (ishex(c)) {
-        a = (a << 4) | hexValue(c);
+    address = 0;
+    while (isHex(c)) {
+        address = (address << 4) | hexValue(c);
         c = getc(traceFile);
     }
     if (c != ',') {
         fprintf(stderr, "bad trace file input at line %d: %c\n", traceLineNumber, c);
         exit(-1);
     }
-    /* skip the comma */
-    /* and get the length */
-    int n = 0;
+    n = 0;
     c = getc(traceFile);
     while (isdigit(c)) {
         n = n * 10 + decValue(c);
@@ -41,17 +36,9 @@ void readReference(FILE* traceFile, MemoryReference* reference) {
         c = getc(traceFile);
     }
     /* define reference fields */
-    reference->address = a;
+    reference->address = address;
     reference->length = n;
 }
-
-
-
-/* ***************************************************************** */
-/*                                                                   */
-/*                                                                   */
-/* ***************************************************************** */
-
 
 int readTraceFileLine(FILE* traceFile, MemoryReference *reference) {
     int c;
@@ -67,31 +54,28 @@ int readTraceFileLine(FILE* traceFile, MemoryReference *reference) {
 
         /* what is the character ? */
         switch (c) {
-            case 'I': /* instruction trace */ {
-                                                  reference->type = FETCH;
-                                                  readReference(traceFile, reference);
-                                                  return 'I';
-                                              }
-
-            case 'M': /* read/modify/write -- treat as a store */
-            case 'S': /* store */ {
-                                      reference->type = STORE;
-                                      readReference(traceFile, reference);
-                                      return 'S';
-                                  }
-
-            case 'L': /* load */ {
-                                     reference->type = LOAD;
-                                     readReference(traceFile, reference);
-                                     return 'L';
-                                 }
+            case 'I':
+                reference->type = FETCH;
+                readReference(traceFile, reference);
+                return 'I';
+            case 'M':
+            case 'S':
+                reference->type = STORE;
+                readReference(traceFile, reference);
+                return 'S';
+            case 'L':
+                reference->type = LOAD;
+                readReference(traceFile, reference);
+                return 'L';
         }
 
         /* apparently not a reference line.  There are a bunch
            of other lines that valgrind puts out.  They star
            with  ====, or --, or such.  Skip the entire line. */
         /* skip to end of line */
-        while ((c != '\n') && (c != EOF)) c = getc(traceFile);
+        while ((c != '\n') && (c != EOF)) {
+            c = getc(traceFile);
+        }
     }
     return EOF;
 }
@@ -109,8 +93,9 @@ int readTraceFileLine(FILE* traceFile, MemoryReference *reference) {
    to be used. */
 
 void Check_For_Decay(int time, Cache *c) {
-    if (cache->replacementPolicy != LFU) return;
-
+    if (cache->replacementPolicy != LFU) {
+        return;
+    }
     if (!(time % cache->lfuDecayInterval)) {
         int i;
         if (debug) fprintf(debugFile, "%s: LFU decay for all LFU counters\n", cache->name);
@@ -128,7 +113,7 @@ void Check_For_Decay(int time, Cache *c) {
 int getBaseCacheAddress(Cache *c, int a) {
     /* find number of low-order bits to mask off to find beginning cache
        line address */
-    int number_of_low_order_bits = which_power(cache->cacheLineSize);
+    int number_of_low_order_bits = logOfTwo(cache->cacheLineSize);
     int low_order_mask = mask_of(number_of_low_order_bits);
     int cache_address = a & (~low_order_mask);
     return cache_address;
@@ -139,9 +124,9 @@ int computeSetIndex(Cache *c, int cache_address) {
        indexing into cache table */
     /* the number of sets is the number of cache entries
        divided by the number of ways. */
-    int number_of_low_order_bits = which_power(cache->cacheLineSize);
+    int number_of_low_order_bits = logOfTwo(cache->cacheLineSize);
     int number_of_sets = cache->entries/cache->numberOfWays;
-    int sets_bits = which_power(number_of_sets);
+    int sets_bits = logOfTwo(number_of_sets);
     int sets_bits_mask = mask_of(sets_bits);
     int cache_set_index = (cache_address >> number_of_low_order_bits) & sets_bits_mask;
     int cache_entry_index = cache_set_index * cache->numberOfWays;
