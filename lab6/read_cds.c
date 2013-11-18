@@ -165,7 +165,7 @@ void defineKeyValuePair(CDS* cds, Token* key, Token* value) {
     if (strcasestr(key->string, "entries") != NULL)
         {
             int n = atoi(value->string);
-            cds->c->number_of_cache_entries = n;
+            cds->c->entries = n;
             return;
         }
 
@@ -173,7 +173,7 @@ void defineKeyValuePair(CDS* cds, Token* key, Token* value) {
     if (strcasestr(key->string, "ways") != NULL)
         {
             int n = atoi(value->string);
-            cds->c->number_of_ways = n;
+            cds->c->numberOfWays = n;
             return;
         }
 
@@ -240,7 +240,7 @@ void defineKeyValuePair(CDS* cds, Token* key, Token* value) {
     }
     if (strcasestr(key->string, "ways") != NULL) {
         int n = atoi(value->string);
-        cds->c->number_of_ways = n;
+        cds->c->numberOfWays = n;
         return;
     }
     // Define victim cache
@@ -286,8 +286,8 @@ CDS* Read_CDS_file_entry(FILE *CDS_file) {
 
     /* default values */
     cds->c->cache_line_size = 64;
-    cds->c->number_of_cache_entries = 1024;
-    cds->c->number_of_ways = 2;
+    cds->c->entries = 1024;
+    cds->c->numberOfWays = 2;
     cds->c->write_back = 1;
     cds->c->replacement_policy = CRP_FIFO;
     cds->c->LFU_Decay_Interval = 200000;
@@ -305,7 +305,7 @@ CDS* Read_CDS_file_entry(FILE *CDS_file) {
     cds->c->name = remember_string(cds->name);
 
     if (debug) {
-        debug_print_cds(cds);
+        debugPrintCds(cds);
     }
     return cds;
 }
@@ -316,7 +316,7 @@ CDS* Read_CDS_file_entry(FILE *CDS_file) {
 /*                                                                   */
 /* ***************************************************************** */
 
-void Read_Cache_Descriptions(char* CDS_file_name)
+void readCacheDescriptions(char* CDS_file_name)
 {
     FILE *CDS_file;
     CDS *cds;

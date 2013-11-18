@@ -143,7 +143,7 @@ void Check_For_Decay(int time, struct cache *c)
         {
             int i;
             if (debug) fprintf(debugFile, "%s: LFU decay for all LFU counters\n", c->name);
-            for (i = 0; i < c->number_of_cache_entries; i++)
+            for (i = 0; i < c->entries; i++)
                 {
                     c->c_line[i].replacement_data = c->c_line[i].replacement_data/2;
                 }
@@ -172,11 +172,11 @@ int Compute_Set_Index(struct cache *c, int cache_address)
     /* the number of sets is the number of cache entries
        divided by the number of ways. */
     int number_of_low_order_bits = which_power(c->cache_line_size);
-    int number_of_sets = c->number_of_cache_entries/c->number_of_ways;
+    int number_of_sets = c->entries/c->numberOfWays;
     int sets_bits = which_power(number_of_sets);
     int sets_bits_mask = mask_of(sets_bits);
     int cache_set_index = (cache_address >> number_of_low_order_bits) & sets_bits_mask;
-    int cache_entry_index = cache_set_index * c->number_of_ways;
+    int cache_entry_index = cache_set_index * c->numberOfWays;
     return(cache_entry_index);
 }
 
@@ -192,12 +192,12 @@ int searchCacheFor(struct cache* c, int cache_address) {
 
     if (debug) fprintf(debugFile, "%s: search cache lines %d to %d for 0x%08X\n",
             c->name, cache_entry_index,
-            cache_entry_index+c->number_of_ways-1, cache_address);
+            cache_entry_index+c->numberOfWays-1, cache_address);
 
     /* index into cache table and search the number of ways to
        try to find cache line. */
     int i;
-    for (i = 0; i < c->number_of_ways; i++) {
+    for (i = 0; i < c->numberOfWays; i++) {
         if (c->c_line[cache_entry_index+i].valid && (cache_address == c->c_line[cache_entry_index+i].tag)) {
             c->number_cache_hits += 1;
             return(cache_entry_index+i);
@@ -230,7 +230,7 @@ int Find_Victim_by_Replacement_Policy(struct cache *c, int cache_address)
     int victim;
 
     int first_index = Compute_Set_Index(c, cache_address);
-    int set_size = c->number_of_ways;
+    int set_size = c->numberOfWays;
     if (debug) fprintf(debugFile, "%s: look for victim in %d lines starting at %d\n", c->name,  set_size, first_index);
 
     /* first look to see if any entry is empty */
@@ -489,11 +489,11 @@ void simulateCaches(char* traceFileName) {
     fclose(traceFile);
 }
 
-int number_dirty_lines(struct cache *c)
+int countDirtyLines(struct cache *c)
 {
     int n = 0;
     int i;
-    for (i = 0; i < c->number_of_cache_entries; i++)
+    for (i = 0; i < c->entries; i++)
         {
             if (c->c_line[i].dirty)
                 {

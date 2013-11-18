@@ -1,80 +1,47 @@
 #include "global.h"
 #include "caches.h"
 
-
-/* ***************************************************************** */
-/*                                                                   */
-/*                                                                   */
-/* ***************************************************************** */
-
-void usage(void) {
-    fprintf (stderr,"usage: caches [-D] cache-descriptions-file  memory-trace-file\n");
+void usage(const char* programName) {
+    fprintf(stderr,"Usage: %s [-D] cache-descriptions-file  memory-trace-file\n", programName);
 }
 
-void scanargs(char* s)
-{
-    /* check each character of the option list for
-       its meaning. */
-
-    while (*++s != '\0')
-        switch (*s)
-            {
-
-            case 'D': /* debug option */
+void scanargs(const char* s) {
+    while (*++s) {
+        switch (*s) {
+            case 'D': // Debug
                 debug = 1;
-                if (debug)
-                    {
-                        debugFile = fopen("DEBUG_LOG", "w");
-                        if (debugFile == NULL)
-                            {
-                                fprintf(stderr, "Cannot open DEBUG_LOG\n");
-                                debug = 0;
-                            }
+                if (debug) {
+                    debugFile = fopen("DEBUG_LOG", "w");
+                    if (!debugFile) {
+                        fprintf(stderr, "Cannot open DEBUG_LOG\n");
+                        debug = 0;
                     }
+                }
                 break;
-
             default:
-                fprintf (stderr,"caches: Bad option %c\n", *s);
+                fprintf(stderr,"Caches: Bad option %c\n", *s);
                 usage();
                 exit(1);
-            }
+        }
+    }
 }
 
-
-/* ***************************************************************** */
-/*                                                                   */
-/*                                                                   */
-/* ***************************************************************** */
-
-int main(int argc, char* *argv)
-{
-    /* main driver program.  There are two inpu
-       files.
-       1. defines the caches
-       2. defines the memory trace
-    */
-
-    /* Process all arguments. */
-    /* skip program name */
-    argc--, argv++;
-    while ((argc > 1) && (**argv == '-'))
-        {
+int main(int argc, char** argv) {
+    int i;
+    if (argc != 2) {
+        usage(argv[0]);
+        exit(-1);
+    }
+    for (i = 1; i < argc; ++i) {
+        while (**argv == '-') {
             scanargs(*argv);
-            argc--, argv++;
         }
-
-    if (argc != 2)
-        {
-            usage();
-            exit(-1);
-        }
-
-    Read_Cache_Descriptions(argv[0]);
+    }
+    readCacheDescriptions(argv[0]);
     initCaches();
     simulateCaches(argv[1]);
-    Print_Cache_Statistics();
+    printCacheStatistics();
     deleteCaches();
-
-    exit(0);
+    return 0;
 }
 

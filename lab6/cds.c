@@ -1,53 +1,30 @@
-/* ***************************************************************** */
-/*                                                                   */
-/*                                                                   */
-/* ***************************************************************** */
-
-/* cache description support code */
-
 #include "global.h"
 #include "cds.h"
 #include "caches.h"
 
-
-/* ***************************************************************** */
-/*                                                                   */
-/*                                                                   */
-/* ***************************************************************** */
-
-char* print_sets_and_ways(struct cache *c)
-{
-    if (c->number_of_ways == 1) return("direct-mapped");
-    if (c->number_of_ways == c->number_of_cache_entries) return("fully associative");
-
+const char* printSetsAndWays(Cache* cache) {
+    if (cache->numberOfWays == 1) {
+        return "direct-mapped";
+    }
+    if (cache->numberOfWays == cache->entries) {
+        return("fully associative");
+    }
     static char buffer[64];
-    sprintf (buffer, "%d sets of %d ways",
-             c->number_of_cache_entries/c->number_of_ways, c->number_of_ways);
-    return(buffer);
+    sprintf(buffer, "%d sets of %d ways", cache->entries / cache->numberOfWays, cache->numberOfWays);
+    return buffer;
 }
 
-
-/* ***************************************************************** */
-/*                                                                   */
-/*                                                                   */
-/* ***************************************************************** */
-
-char* memory_reference_type_name(enum MemoryAccessType type)
-{
-    switch(type)
-        {
-        case FETCH: return("Fetch");
-        case LOAD:  return("Load");
-        case STORE: return("Store");
-        }
-    return("invalid");
+const char* memoryAccessTypeName(enum MemoryAccessType type) {
+    switch(type) {
+        case FETCH:
+            return "Fetch";
+        case LOAD:
+            return "Load";
+        case STORE:
+            return "Store";
+    }
+    return "invalid";
 }
-
-
-/* ***************************************************************** */
-/*                                                                   */
-/*                                                                   */
-/* ***************************************************************** */
 
 char* CRP_name(struct cache *c)
 {
@@ -72,7 +49,7 @@ char* CRP_name(struct cache *c)
 
 void debug_print_cache(struct cache *c)
 {
-    fprintf(debugFile, "%s: Total number of entries: %d\n", c->name,  c->number_of_cache_entries);
+    fprintf(debugFile, "%s: Total number of entries: %d\n", c->name,  c->entries);
     fprintf(debugFile, "%s: %s\n", c->name,  print_sets_and_ways(c));
     fprintf(debugFile, "%s: Each cache line is %d bytes\n", c->name,  c->cache_line_size);
     fprintf(debugFile, "%s: Cache is %s\n", c->name,  c->write_back ? "write-back" : "write-thru");
@@ -80,7 +57,7 @@ void debug_print_cache(struct cache *c)
 }
 
 
-void debug_print_cds(CDS *cds)
+void debugPrintCds(CDS *cds)
 {
     debug_print_cache(cds->c);
 }
@@ -99,10 +76,10 @@ int percent(int a, int b)
 }
 
 
-void Print_Cache_Statistics_for_one_cache(struct cache *c)
+void printCacheStatistics_for_one_cache(struct cache *c)
 {
     fprintf(stdout, "%s: %d entries of lines of %d bytes; %s, %s, %s\n",
-            c->name, c->number_of_cache_entries, c->cache_line_size,
+            c->name, c->entries, c->cache_line_size,
             print_sets_and_ways(c),
             c->write_back ? "write-back" : "write-thru",
             CRP_name(c));
@@ -113,11 +90,11 @@ void Print_Cache_Statistics_for_one_cache(struct cache *c)
             c->number_cache_misses, c->number_miss_reads, c->number_miss_writes);
 
     if (c->write_back)
-        fprintf(stdout, "%s: %d dirty cache lines remain\n", c->name, number_dirty_lines(c));
+        fprintf(stdout, "%s: %d dirty cache lines remain\n", c->name, countDirtyLines(c));
 }
 
 
-void Print_Cache_Statistics_for_one_cds(CDS *cds)
+void printCacheStatistics_for_one_cds(CDS *cds)
 {
     fprintf(stdout, "      %d addresses (%d %s, %d %s, %d %s)\n",
             cds->number_of_memory_reference,
@@ -125,18 +102,18 @@ void Print_Cache_Statistics_for_one_cds(CDS *cds)
             cds->number_of_type[LOAD], memory_reference_type_name(LOAD),
             cds->number_of_type[STORE], memory_reference_type_name(STORE));
 
-    Print_Cache_Statistics_for_one_cache(cds->c);
+    printCacheStatistics_for_one_cache(cds->c);
 
     fprintf(stdout, "\n");
 }
 
 
-void Print_Cache_Statistics(void)
+void printCacheStatistics(void)
 {
     CDS *cds = CDS_root;
     while (cds != NULL)
         {
-            Print_Cache_Statistics_for_one_cds(cds);
+            printCacheStatistics_for_one_cds(cds);
             cds = cds->next;
         }
 }
@@ -150,7 +127,7 @@ void Print_Cache_Statistics(void)
 
 void initCache(CDS* cds) {
     /* we need one cache line for every entry */
-    cds->c->c_line = (cache_line*) calloc(cds->c->number_of_cache_entries, sizeof(cache_line));
+    cds->c->c_line = (cache_line*) calloc(cds->c->entries, sizeof(cache_line));
     cds->c->victimCache.cacheLine = (VictimCacheLine*) calloc(cds->c->victimCache.entries, sizeof(VictimCacheLine));
 }
 
