@@ -11,18 +11,18 @@ typedef struct {
 
 static int traceLineNumber;
 
-void readReference(FILE* trace_file, MemoryReference* reference) {
+void readReference(FILE* traceFile, MemoryReference* reference) {
     int c;
     /* we have the first character; it defined the
        memory access type.  Skip any blanks, get the
        hexadecimal address, skip the comma and get the length */
 
     /* skip any leading blanks */
-    c = skipBlanks(trace_file);
+    c = skipBlanks(traceFile);
     int a = 0;
     while (ishex(c)) {
         a = (a << 4) | hexValue(c);
-        c = getc(trace_file);
+        c = getc(traceFile);
     }
     if (c != ',') {
         fprintf(stderr, "bad trace file input at line %d: %c\n", traceLineNumber, c);
@@ -31,14 +31,14 @@ void readReference(FILE* trace_file, MemoryReference* reference) {
     /* skip the comma */
     /* and get the length */
     int n = 0;
-    c = getc(trace_file);
+    c = getc(traceFile);
     while (isdigit(c)) {
         n = n * 10 + decValue(c);
-        c = getc(trace_file);
+        c = getc(traceFile);
     }
     /* skip to end of line */
     while ((c != '\n') && (c != EOF)) {
-        c = getc(trace_file);
+        c = getc(traceFile);
     }
     /* define reference fields */
     reference->address = a;
@@ -53,52 +53,52 @@ void readReference(FILE* trace_file, MemoryReference* reference) {
 /* ***************************************************************** */
 
 
-int Read_trace_file_line(FILE* trace_file, MemoryReference *reference)
+int readTraceFileLine(FILE* traceFile, MemoryReference *reference)
 {
     int c;
 
     traceLineNumber = 0;
 
-    while ((c = getc(trace_file)) != EOF)
+    while ((c = getc(traceFile)) != EOF)
+    {
+        /* start the next line */
+        traceLineNumber += 1;
+
+        /* skip any leading blanks */
+        while (isspace(c) && (c != EOF)) c = getc(traceFile);
+
+        /* what is the character ? */
+        switch (c)
         {
-            /* start the next line */
-            traceLineNumber += 1;
-
-            /* skip any leading blanks */
-            while (isspace(c) && (c != EOF)) c = getc(trace_file);
-
-            /* what is the character ? */
-            switch (c)
+            case 'I': /* instruction trace */
                 {
-                case 'I': /* instruction trace */
-                    {
-                        reference->type = FETCH;
-                        readReference(trace_file, reference);
-                        return 'I';
-                    }
-
-                case 'M': /* read/modify/write -- treat as a store */
-                case 'S': /* store */
-                    {
-                        reference->type = STORE;
-                        readReference(trace_file, reference);
-                        return 'S';
-                    }
-
-                case 'L': /* load */
-                    {
-                        reference->type = LOAD;
-                        readReference(trace_file, reference);
-                        return 'L';
-                    }
+                    reference->type = FETCH;
+                    readReference(traceFile, reference);
+                    return 'I';
                 }
 
-            /* apparently not a reference line.  There are a bunch
-               of other lines that valgrind puts out.  They star
-               with  ====, or --, or such.  Skip the entire line. */
-            /* skip to end of line */
-            while ((c != '\n') && (c != EOF)) c = getc(trace_file);
+            case 'M': /* read/modify/write -- treat as a store */
+            case 'S': /* store */
+                {
+                    reference->type = STORE;
+                    readReference(traceFile, reference);
+                    return 'S';
+                }
+
+            case 'L': /* load */
+                {
+                    reference->type = LOAD;
+                    readReference(traceFile, reference);
+                    return 'L';
+                }
         }
+
+        /* apparently not a reference line.  There are a bunch
+           of other lines that valgrind puts out.  They star
+           with  ====, or --, or such.  Skip the entire line. */
+        /* skip to end of line */
+        while ((c != '\n') && (c != EOF)) c = getc(traceFile);
+    }
     return EOF;
 }
 
@@ -116,17 +116,17 @@ int Read_trace_file_line(FILE* trace_file, MemoryReference *reference)
 
 void Check_For_Decay(int time, Cache *c)
 {
-    if (cache->replacement_policy != CRP_LFU) return;
+    if (cache->replacementPolicy != LFU) return;
 
-    if (!(time % cache->LFU_Decay_Interval))
+    if (!(time % cache->lfuDecayInterval))
+    {
+        int i;
+        if (debug) fprintf(debugFile, "%s: LFU decay for all LFU counters\n", cache->name);
+        for (i = 0; i < cache->entries; i++)
         {
-            int i;
-            if (debug) fprintf(debugFile, "%s: LFU decay for all LFU counters\n", cache->name);
-            for (i = 0; i < cache->entries; i++)
-                {
-                    cache->cacheLine[i].replacement_data = cache->cacheLine[i].replacement_data/2;
-                }
+            cache->cacheLine[i].replacementData = cache->cacheLine[i].replacementData/2;
         }
+    }
 }
 
 /* ***************************************************************** */
@@ -144,7 +144,7 @@ int getBaseCacheAddress(Cache *c, int a)
     return cache_address;
 }
 
-int Compute_Set_Index(Cache *c, int cache_address)
+int computeSetIndex(Cache *c, int cache_address)
 {
     /* shift off low-order offset bits and find bits for
        indexing into cache table */
@@ -167,7 +167,7 @@ int Compute_Set_Index(Cache *c, int cache_address)
 
 /* search in the cache for the particular cache address we want */
 int searchCacheFor(Cache* c, int cache_address) {
-    int cache_entry_index = Compute_Set_Index(c, cache_address);
+    int cache_entry_index = computeSetIndex(c, cache_address);
 
     if (debug) fprintf(debugFile, "%s: search cache lines %d to %d for 0x%08X\n",
             cache->name, cache_entry_index,
@@ -203,111 +203,111 @@ int searchVictimCacheFor(VictimCache* victimCache, int cacheAddress) {
 /*                                                                   */
 /* ***************************************************************** */
 
-int Find_Victim_by_Replacement_Policy(Cache *c, int cache_address)
+int findVictim(Cache *c, int cache_address)
 {
     int i;
     int victim;
 
-    int first_index = Compute_Set_Index(c, cache_address);
+    int first_index = computeSetIndex(c, cache_address);
     int set_size = cache->numberOfWays;
     if (debug) fprintf(debugFile, "%s: look for victim in %d lines starting at %d\n", cache->name,  set_size, first_index);
 
     /* first look to see if any entry is empty */
     for (i = 0; i < set_size; i++)
+    {
+        if (!(cache->cacheLine[first_index+i].valid))
         {
-            if (!(cache->cacheLine[first_index+i].valid))
-                {
-                    victim = first_index+i;
-                    if (debug) fprintf(debugFile, "%s: found empty cache entry at %d\n", cache->name,  victim);
-                    return victim;
-                }
+            victim = first_index+i;
+            if (debug) fprintf(debugFile, "%s: found empty cache entry at %d\n", cache->name,  victim);
+            return victim;
         }
+    }
 
     /* No empty cache line entry */
     victim = first_index; /* default victim */
-    switch (cache->replacement_policy)
-        {
-        case CRP_FIFO:  /* replacement data is the order we were brought in: 1, 2, 3, ... */
-                    /* choose the smallest */
+    switch (cache->replacementPolicy)
+    {
+        case FIFO:  /* replacement data is the order we were brought in: 1, 2, 3, ... */
+            /* choose the smallest */
 
-        case CRP_LRU:  /* replacement data is the time we were last hit */
-                    /* choose the smallest */
+        case LRU:  /* replacement data is the time we were last hit */
+            /* choose the smallest */
 
-        case CRP_LFU:  /* replacement data is the number of uses, so
+        case LFU:  /* replacement data is the number of uses, so
                       choose the smallest */
             {
-                int min = cache->cacheLine[first_index].replacement_data;
+                int min = cache->cacheLine[first_index].replacementData;
                 if (debug) fprintf(debugFile, "%s: replacement data: [%d, 0x%08X]: %d", cache->name, victim, cache->cacheLine[victim].tag, min);
                 for (i = 1; i < set_size; i++)
+                {
+                    if (debug) fprintf(debugFile, ", [%d, 0x%08X]: %d", first_index+i, cache->cacheLine[first_index+i].tag, cache->cacheLine[first_index+i].replacementData);
+                    if (cache->cacheLine[first_index+i].replacementData < min)
                     {
-                        if (debug) fprintf(debugFile, ", [%d, 0x%08X]: %d", first_index+i, cache->cacheLine[first_index+i].tag, cache->cacheLine[first_index+i].replacement_data);
-                        if (cache->cacheLine[first_index+i].replacement_data < min)
-                            {
-                                victim = first_index+i;
-                                min = cache->cacheLine[victim].replacement_data;
-                            }
+                        victim = first_index+i;
+                        min = cache->cacheLine[victim].replacementData;
                     }
+                }
                 if (debug) fprintf(debugFile, "\n");
             }
             break;
 
-        case CRP_RANDOM:
+        case RANDOM:
             victim = first_index + (random() % set_size);
             break;
-        }
+    }
 
     if (debug) fprintf(debugFile, "%s: found victim in entry %d\n", cache->name,  victim);
     return victim;
 }
 
 
-void evict_dirty_line_from_cache(Cache *c, CacheLine *victim_line)
+void evictDirtyLine(Cache *c, CacheLine *victim_line)
 {
     if (debug) fprintf(debugFile, "%s: Write dirty victim 0x%08X\n",
-                       cache->name,  victim_line->tag);
+            cache->name,  victim_line->tag);
     cache->totalMissWrites += 1;
 }
 
 
-void Set_Replacement_Policy_Data(int time, Cache *c, CacheLine *cache_entry)
+void setReplacementData(int time, Cache *c, CacheLine *cache_entry)
 {
-    switch (cache->replacement_policy)
-        {
-        case CRP_FIFO:  /* replacement data is the order we were brought in: 1, 2, 3, ... */
-            cache_entry->replacement_data = time;
+    switch (cache->replacementPolicy)
+    {
+        case FIFO:  /* replacement data is the order we were brought in: 1, 2, 3, ... */
+            cache_entry->replacementData = time;
             break;
 
-        case CRP_LRU:  /* replacement data is the time we were last hit */
-            cache_entry->replacement_data = time;
+        case LRU:  /* replacement data is the time we were last hit */
+            cache_entry->replacementData = time;
             break;
 
-        case CRP_LFU:  /* replacement data is a count; starts at zero */
+        case LFU:  /* replacement data is a count; starts at zero */
             cache_entry->replacement_data = 0;
             Check_For_Decay(time, c);
 
-        case CRP_RANDOM:
+        case RANDOM:
             break;
-        }
+    }
 }
 
-void Update_Replacement_Policy_Data(int time, Cache *c, CacheLine *cache_entry)
+void updateReplacementData(int time, Cache *c, CacheLine *cache_entry)
 {
-    switch (cache->replacement_policy)
-        {
-        case CRP_FIFO:  /* replacement data is the order we were brought in: 1, 2, 3, ... */
+    switch (cache->replacementPolicy)
+    {
+        case FIFO:  /* replacement data is the order we were brought in: 1, 2, 3, ... */
             break;
 
-        case CRP_LRU:  /* replacement data is the time we were last hit */
-            cache_entry->replacement_data = time;
+        case LRU:  /* replacement data is the time we were last hit */
+            cache_entry->replacementData = time;
             break;
 
-        case CRP_LFU:  /* replacement data is the count of the number of uses */
-            cache_entry->replacement_data += 1;
+        case LFU:  /* replacement data is the count of the number of uses */
+            cache_entry->replacementData += 1;
             Check_For_Decay(time, c);
 
-        case CRP_RANDOM:
+        case RANDOM:
             break;
-        }
+    }
 }
 
 
@@ -318,17 +318,17 @@ void Update_Replacement_Policy_Data(int time, Cache *c, CacheLine *cache_entry)
 
 #define swap1(a,b) { int t = a; a = b; b = t; }
 
-void swap_CacheLines(CacheLine *a, CacheLine *b)
+void swapCacheLines(CacheLine *a, CacheLine *b)
 {
     swap1(a->tag, b->tag);
     swap1(a->dirty, b->dirty);
 }
 
 
-void evict_from_cache(CacheDescription* cacheDescription, CacheLine* victim_line, int cache_address) {
+void evictFromCache(CacheDescription* cacheDescription, CacheLine* victim_line, int cache_address) {
     /* if victim is dirty, note that this dirty line is being evicted */
     if (victim_line->dirty) {
-        evict_dirty_line_from_cache(cacheDescription->c, victim_line);
+        evictDirtyLine(cacheDescription->c, victim_line);
     }
 }
 
@@ -354,7 +354,7 @@ void simulateReferenceToCacheLine(CacheDescription* cacheDescription, MemoryRefe
             fprintf(debugFile, "%s: Found address 0x%08X in cache line %d\n", cacheDescription->name, reference->address, cacheEntryIndex);
         }
         cacheEntry = &(cacheDescription->cache->cacheLine[cacheEntryIndex]);
-        Set_Replacement_Policy_Data(cacheDescription->numberOfMemoryReference, cacheDescription->c, cacheEntry);
+        setReplacementData(cacheDescription->numberOfMemoryReference, cacheDescription->c, cacheEntry);
     } else {
         // Go into victim cache
         ++cacheDescription->cache->victimCache.totalCacheAccess;
@@ -365,7 +365,7 @@ void simulateReferenceToCacheLine(CacheDescription* cacheDescription, MemoryRefe
         /* Did not find it. */
         found = 0;
         /* Choose a victim from the set */
-        cacheEntryIndex = Find_Victim_by_Replacement_Policy(cacheDescription->c, cacheAddress);
+        cacheEntryIndex = findVictim(cacheDescription->c, cacheAddress);
         cacheEntry = &(cacheDescription->cache->cacheLine[cacheEntryIndex]);
         if (debug) {
             fprintf(debugFile, "%s: Pick victim %d to replace\n", cacheDescription->name,  cacheEntryIndex);
@@ -373,7 +373,7 @@ void simulateReferenceToCacheLine(CacheDescription* cacheDescription, MemoryRefe
 
         /* evict victim */
         if (cacheEntry->valid) {
-            evict_from_cache(cacheDescription, cacheEntry, cacheAddress);
+            evictFromCache(cacheDescription, cacheEntry, cacheAddress);
         }
         if (!found) {
             /* fill in evicted cache line for this new line */
@@ -400,7 +400,7 @@ void simulateReferenceToCacheLine(CacheDescription* cacheDescription, MemoryRefe
     }
     if (!found) {
     } else {
-        Update_Replacement_Policy_Data(cacheDescription->numberOfMemoryReference, cacheDescription->c, cacheEntry);
+        updateReplacementData(cacheDescription->numberOfMemoryReference, cacheDescription->c, cacheEntry);
     }
 }
 
@@ -415,30 +415,30 @@ void simulateReferenceToMemory(CacheDescription* cacheDescription, MemoryReferen
     cacheDescription->numberOfType[reference->type] += 1;
     // Check if the entire reference fits into just one cache line
     if (getBaseCacheAddress(cacheDescription->c, reference->address) == getBaseCacheAddress(cacheDescription->c, reference->address + reference->length -1))
-        {
-            simulateReferenceToCacheLine(cacheDescription, reference);
-        }
+    {
+        simulateReferenceToCacheLine(cacheDescription, reference);
+    }
     else
-        {
-            /* reference spans two cache lines.  Convert it to two
-               references: the first cache line, and the second cache line */
-            MemoryReference reference1;
-            MemoryReference reference2;
-            /* easiest to compute the second part first */
-            reference2.type = reference->type;
-            reference2.address = getBaseCacheAddress(cacheDescription->c, reference->address + reference->length -1);
-            reference2.length = reference->address + reference->length - reference2.address;
-            reference1.type = reference->type;
-            reference1.address = reference->address;
-            reference1.length = reference->length - reference2.length;
+    {
+        /* reference spans two cache lines.  Convert it to two
+references: the first cache line, and the second cache line */
+        MemoryReference reference1;
+        MemoryReference reference2;
+        /* easiest to compute the second part first */
+        reference2.type = reference->type;
+        reference2.address = getBaseCacheAddress(cacheDescription->c, reference->address + reference->length -1);
+        reference2.length = reference->address + reference->length - reference2.address;
+        reference1.type = reference->type;
+        reference1.address = reference->address;
+        reference1.length = reference->length - reference2.length;
 
-            /* but we do the references first, then second */
-            simulateReferenceToCacheLine(cacheDescription, &reference1);
-            simulateReferenceToCacheLine(cacheDescription, &reference2);
-        }
+        /* but we do the references first, then second */
+        simulateReferenceToCacheLine(cacheDescription, &reference1);
+        simulateReferenceToCacheLine(cacheDescription, &reference2);
+    }
 }
 
-void simulateCaches(char* traceFileName) {
+void simulateCaches(const char* traceFileName) {
     FILE* traceFile;
     MemoryReference reference;
     traceFile = fopen(traceFileName, "r");
@@ -447,7 +447,7 @@ void simulateCaches(char* traceFileName) {
         exit(1);
     }
     initCachesForTrace();
-    while (Read_trace_file_line(traceFile, &reference) != EOF) {
+    while (readTraceFileLine(traceFile, &reference) != EOF) {
         CacheDescription* cacheDescription = cacheDescriptionRoot;
         while (cacheDescription) {
             simulateReferenceToMemory(cacheDescription, &reference);
