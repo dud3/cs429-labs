@@ -63,8 +63,7 @@ int percent(int a, int b) {
     return a * 100 / b;
 }
 
-
-void printCacheStatistics_for_one_cache(struct cache *c)
+void printCacheStatisticsForCache(Cache* cache)
 {
     fprintf(stdout, "%s: %d entries of lines of %d bytes; %s, %s, %s\n",
             c->name, c->entries, c->cache_line_size,

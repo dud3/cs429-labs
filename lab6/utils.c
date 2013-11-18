@@ -1,42 +1,24 @@
-
-/* ***************************************************************** */
-/*                                                                   */
-/*                                                                   */
-/* ***************************************************************** */
-
-/* The code to read a memory trace and simulate it on the various
-   caches. */
-
+#include "utils.h"
 #include "global.h"
-#include "utils.h"        // utility functions
 
-/* ***************************************************************** */
-/*                                                                   */
-/*                                                                   */
-/* ***************************************************************** */
-
-/* n is a power of two, which one? */
-/* 1 -> 0; 2 -> 1; ... */
-int which_power(int n)
-{
-    debugFile = 0;
+int log2(int n) {
     int i = 0;
-    int t = 1;
-    while (n > t)
-        {
-            t += t;
-            i += 1;
-        }
+    if (n <= 0) {
+        return 0;
+    }
+    n >>= 1;
+    while (n) {
+        n >>= 1;
+        ++i;
+    }
     return i;
 }
 
-/* generate a mask of n low order bits */
-/* if we want a mask of two bits, shift a 1 two
-   bits over (100), and then subtract one (011). */
-unsigned int mask_of(int n)
-{
+int mask(int n) {
     int m;
-    if (n <= 0) return 0;
+    if (n <= 0) {
+        return 0;
+    }
     m = (1 << n) - 1;
     return m;
 }
