@@ -57,9 +57,9 @@ struct cache_line
 {
     char valid;
     char dirty;
-    memory_address tag;
+    char* actual_data;
+    int tag;
     int     replacement_data;
-    byte   *actual_data;
 };
 typedef struct cache_line cache_line;
 

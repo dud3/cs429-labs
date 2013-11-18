@@ -72,11 +72,11 @@ char* CRP_name(struct cache *c)
 
 void debug_print_cache(struct cache *c)
 {
-    fprintf(debug_file, "%s: Total number of entries: %d\n", c->name,  c->number_of_cache_entries);
-    fprintf(debug_file, "%s: %s\n", c->name,  print_sets_and_ways(c));
-    fprintf(debug_file, "%s: Each cache line is %d bytes\n", c->name,  c->cache_line_size);
-    fprintf(debug_file, "%s: Cache is %s\n", c->name,  c->write_back ? "write-back" : "write-thru");
-    fprintf(debug_file, "%s: With a %s replacement policy\n", c->name, CRP_name(c));
+    fprintf(debugFile, "%s: Total number of entries: %d\n", c->name,  c->number_of_cache_entries);
+    fprintf(debugFile, "%s: %s\n", c->name,  print_sets_and_ways(c));
+    fprintf(debugFile, "%s: Each cache line is %d bytes\n", c->name,  c->cache_line_size);
+    fprintf(debugFile, "%s: Cache is %s\n", c->name,  c->write_back ? "write-back" : "write-thru");
+    fprintf(debugFile, "%s: With a %s replacement policy\n", c->name, CRP_name(c));
 }
 
 

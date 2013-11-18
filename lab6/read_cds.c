@@ -28,9 +28,9 @@ typedef struct Token Token;
 
 Token *new_token(void)
 {
-    Token *t = CAST(Token *, malloc(sizeof(Token)));
+    Token *t = (Token*) malloc(sizeof(Token));
     t->length = MIN_TOKEN_SIZE;
-    t->string = CAST(char*, malloc(t->length));
+    t->string = (char*) malloc(t->length);
     return(t);
 }
 
@@ -46,7 +46,7 @@ void put_char_in_token_at(Token *t, char c, int i)
         {
             /* need more space */
             t->length = 2 * t->length;
-            t->string = CAST(char *,realloc(t->string, t->length));
+            t->string = (char*) realloc(t->string, t->length);
             if (t->string == NULL)
                 {
                     fprintf(stderr, "Hell has frozen over!!!\n");
@@ -142,7 +142,7 @@ int get_key_value_pair(FILE *CDS_file, Token *key, Token *value)
 
 void defineKeyValuePair(CDS* cds, Token* key, Token* value) {
     if (debug) {
-        fprintf(debug_file, "define %s = %s \n", key->string, value->string);
+        fprintf(debugFile, "define %s = %s \n", key->string, value->string);
     }
     /* look for the name */
     if (strcasestr(key->string, "name") != NULL) {

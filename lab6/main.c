@@ -24,8 +24,8 @@ void scanargs(char* s)
                 debug = TRUE;
                 if (debug)
                     {
-                        debug_file = fopen("DEBUG_LOG", "w");
-                        if (debug_file == NULL)
+                        debugFile = fopen("DEBUG_LOG", "w");
+                        if (debugFile == NULL)
                             {
                                 fprintf(stderr, "Cannot open DEBUG_LOG\n");
                                 debug = FALSE;

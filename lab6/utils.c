@@ -86,7 +86,7 @@ char* remember_string(const char* name)
 
     /* get memory to remember file name */
     n = strlen(name) + 1;
-    p = CAST(char* , malloc(n));
+    p = (char*) malloc(n);
     strcpy(p, name);
     return(p);
 }
@@ -94,7 +94,7 @@ char* remember_string(const char* name)
 char* augment_name(const char* name, const char* plus)
 {
     int n = strlen(name) + 1 + strlen(plus) + 1;
-    char* p = CAST(char*, malloc(n));
+    char* p = (char*) malloc(n);
     sprintf(p, "%s %s", name, plus);
     return(p);
 }
