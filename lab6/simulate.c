@@ -135,7 +135,7 @@ int Read_trace_file_line(FILE *trace_file, memory_reference *reference)
    so that eventually a count will go to zero if it is not continuing
    to be used. */
 
-void Check_For_Decay(counter_t time, struct cache *c)
+void Check_For_Decay(int time, struct cache *c)
 {
     if (c->replacement_policy != CRP_LFU) return;
 
@@ -290,7 +290,7 @@ void evict_dirty_line_from_cache(struct cache *c, cache_line *victim_line)
 }
 
 
-void Set_Replacement_Policy_Data(counter_t time, struct cache *c, cache_line *cache_entry)
+void Set_Replacement_Policy_Data(int time, struct cache *c, cache_line *cache_entry)
 {
     switch (c->replacement_policy)
         {
@@ -311,7 +311,7 @@ void Set_Replacement_Policy_Data(counter_t time, struct cache *c, cache_line *ca
         }
 }
 
-void Update_Replacement_Policy_Data(counter_t time, struct cache *c, cache_line *cache_entry)
+void Update_Replacement_Policy_Data(int time, struct cache *c, cache_line *cache_entry)
 {
     switch (c->replacement_policy)
         {

@@ -97,12 +97,12 @@ struct cache
     cache_line* c_line;
     int         number_of_cache_entries;
 
-    counter_t number_total_cache_access;
-    counter_t number_cache_hits;
-    counter_t number_cache_misses;
+    int number_total_cache_access;
+    int number_cache_hits;
+    int number_cache_misses;
 
-    counter_t number_miss_reads;
-    counter_t number_miss_writes;
+    int number_miss_reads;
+    int number_miss_writes;
     VictimCache victimCache;
 };
 
@@ -121,8 +121,8 @@ struct CDS {
     struct cache* c;
 
     /* statistics for each cache policy */
-    counter_t number_of_memory_reference;
-    counter_t number_of_type[NUMBER_OF_MEMORY_ACCESS_TYPE];
+    int number_of_memory_reference;
+    int number_of_type[NUMBER_OF_MEMORY_ACCESS_TYPE];
 };
 typedef struct CDS CDS;
 
