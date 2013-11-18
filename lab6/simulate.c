@@ -199,11 +199,11 @@ int searchCacheFor(struct cache* c, int cache_address) {
     int i;
     for (i = 0; i < c->numberOfWays; i++) {
         if (c->c_line[cache_entry_index+i].valid && (cache_address == c->c_line[cache_entry_index+i].tag)) {
-            c->number_cache_hits += 1;
+            c->totalCacheHits += 1;
             return cache_entry_index+i;
         }
     }
-    c->number_cache_misses += 1;
+    c->totalCacheMisses += 1;
     return -1;
 }
 
@@ -286,7 +286,7 @@ void evict_dirty_line_from_cache(struct cache *c, cache_line *victim_line)
 {
     if (debug) fprintf(debugFile, "%s: Write dirty victim 0x%08X\n",
                        c->name,  victim_line->tag);
-    c->number_miss_writes += 1;
+    c->totalMissWrites += 1;
 }
 
 
@@ -346,7 +346,7 @@ void swap_cache_lines(cache_line *a, cache_line *b)
 }
 
 
-void evict_from_cache(CDS* cds, cache_line* victim_line, int cache_address) {
+void evict_from_cache(CacheDescription* cds, cache_line* victim_line, int cache_address) {
     /* if victim is dirty, note that this dirty line is being evicted */
     if (victim_line->dirty) {
         evict_dirty_line_from_cache(cds->c, victim_line);
@@ -359,23 +359,23 @@ void evict_from_cache(CDS* cds, cache_line* victim_line, int cache_address) {
 /*                                                                   */
 /* ***************************************************************** */
 
-void simulateReferenceToCacheLine(CDS* cds, memory_reference* reference) {
+void simulateReferenceToCacheLine(CacheDescription* cds, memory_reference* reference) {
     char found = 0;
     int cacheEntryIndex;
     cache_line* cacheEntry = 0;
     int cacheAddress;
     if (debug) {
-        fprintf(debugFile, "%s: %s Reference 0x%08X of length %d\n", cds->name, memory_reference_type_name(reference->type), reference->address, reference->length);
+        fprintf(debugFile, "%s: %s Reference 0x%08X of length %d\n", cds->name, memoryAccessTypeName(reference->type), reference->address, reference->length);
     }
     cacheAddress = getBaseCacheAddress(cds->c, reference->address);
-    ++cds->c->number_total_cache_access;
+    ++cds->c->totalCacheAccess;
     if (0 <= (cacheEntryIndex = searchCacheFor(cds->c, cacheAddress))) { // Found in cache
         found = 1;
         if (debug) {
             fprintf(debugFile, "%s: Found address 0x%08X in cache line %d\n", cds->name, reference->address, cacheEntryIndex);
         }
         cacheEntry = &(cds->c->c_line[cacheEntryIndex]);
-        Set_Replacement_Policy_Data(cds->number_of_memory_reference, cds->c, cacheEntry);
+        Set_Replacement_Policy_Data(cds->numberOfMemoryReference, cds->c, cacheEntry);
     } else {
         // Go into victim cache
         ++cds->c->victimCache.totalCacheAccess;
@@ -403,15 +403,15 @@ void simulateReferenceToCacheLine(CDS* cds, memory_reference* reference) {
             cacheEntry->dirty = 0;
             /* read cache line from memory into cache table */
             if (debug) fprintf(debugFile, "%s: Read cache line 0x%08X into entry %d\n", cds->name,  cacheEntry->tag, cacheEntryIndex);
-            cds->c->number_miss_reads += 1;
+            cds->c->totalMissReads += 1;
         }
     }
     /* update reference specific info */
     if (reference->type == STORE) {
         /* If it's not write-back, then it is write-thru.
            For write-thru, if it's a write, we write to memory. */
-        if (!cds->c->write_back) {
-            cds->c->number_miss_writes += 1;
+        if (!cds->c->writeBack) {
+            cds->c->totalMissWrites += 1;
             if (debug) fprintf(debugFile, "%s: Write cache line 0x%08X thru to memory\n", cds->name,  cacheEntry->tag);
         }
         else {
@@ -421,7 +421,7 @@ void simulateReferenceToCacheLine(CDS* cds, memory_reference* reference) {
     }
     if (!found) {
     } else {
-        Update_Replacement_Policy_Data(cds->number_of_memory_reference, cds->c, cacheEntry);
+        Update_Replacement_Policy_Data(cds->numberOfMemoryReference, cds->c, cacheEntry);
     }
 }
 
@@ -431,9 +431,9 @@ void simulateReferenceToCacheLine(CDS* cds, memory_reference* reference) {
 /*                                                                   */
 /* ***************************************************************** */
 
-void simulateReferenceToMemory(CDS* cds, memory_reference* reference) {
-    cds->number_of_memory_reference += 1;
-    cds->number_of_type[reference->type] += 1;
+void simulateReferenceToMemory(CacheDescription* cds, memory_reference* reference) {
+    cds->numberOfMemoryReference += 1;
+    cds->numberOfType[reference->type] += 1;
     // Check if the entire reference fits into just one cache line
     if (getBaseCacheAddress(cds->c, reference->address) == getBaseCacheAddress(cds->c, reference->address + reference->length -1))
         {
@@ -480,7 +480,7 @@ void simulateCaches(char* traceFileName) {
     }
     initCachesForTrace();
     while (Read_trace_file_line(traceFile, &reference) != EOF) {
-        CDS* cds = CDS_root;
+        CacheDescription* cds = cacheDescriptionRoot;
         while (cds != 0) {
             simulateReferenceToMemory(cds, &reference);
             cds = cds->next;

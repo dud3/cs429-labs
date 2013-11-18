@@ -140,7 +140,7 @@ int get_key_value_pair(FILE *CDS_file, Token *key, Token *value)
 }
 
 
-void defineKeyValuePair(CDS* cds, Token* key, Token* value) {
+void defineKeyValuePair(CacheDescription* cds, Token* key, Token* value) {
     if (debug) {
         fprintf(debugFile, "define %s = %s \n", key->string, value->string);
     }
@@ -182,12 +182,12 @@ void defineKeyValuePair(CDS* cds, Token* key, Token* value) {
         {
             if (strcasestr(value->string, "true") != 0)
                 {
-                    cds->c->write_back = 1;
+                    cds->c->writeBack = 1;
                     return;
                 }
             if (strcasestr(value->string, "false") != 0)
                 {
-                    cds->c->write_back = 0;
+                    cds->c->writeBack = 0;
                     return;
                 }
         }
@@ -197,12 +197,12 @@ void defineKeyValuePair(CDS* cds, Token* key, Token* value) {
         {
             if (strcasestr(value->string, "true") != 0)
                 {
-                    cds->c->write_back = 0;
+                    cds->c->writeBack = 0;
                     return;
                 }
             if (strcasestr(value->string, "false") != 0)
                 {
-                    cds->c->write_back = 1;
+                    cds->c->writeBack = 1;
                     return;
                 }
         }
@@ -258,7 +258,7 @@ void defineKeyValuePair(CDS* cds, Token* key, Token* value) {
 /*                                                                   */
 /* ***************************************************************** */
 
-CDS* Read_CDS_file_entry(FILE *CDS_file) {
+CacheDescription* Read_CDS_file_entry(FILE *CDS_file) {
     int c;
 
     c = skipBlanks(CDS_file);
@@ -280,7 +280,7 @@ CDS* Read_CDS_file_entry(FILE *CDS_file) {
 
     /* starting a new cache description.  Get a structure,
        and fill in default values. */
-    CDS* cds = (CDS*) malloc(sizeof(CDS));
+    CacheDescription* cds = (CacheDescription*) malloc(sizeof(CDS));
     cds->c = (struct cache*) malloc(sizeof(struct cache));
     cds->name = 0;
 
@@ -288,7 +288,7 @@ CDS* Read_CDS_file_entry(FILE *CDS_file) {
     cds->c->cacheLineSize = 64;
     cds->c->entries = 1024;
     cds->c->numberOfWays = 2;
-    cds->c->write_back = 1;
+    cds->c->writeBack = 1;
     cds->c->replacement_policy = CRP_FIFO;
     cds->c->LFU_Decay_Interval = 200000;
     cds->c->c_line = 0;
@@ -319,7 +319,7 @@ CDS* Read_CDS_file_entry(FILE *CDS_file) {
 void readCacheDescriptions(char* CDS_file_name)
 {
     FILE *CDS_file;
-    CDS *cds;
+    CacheDescription*cds;
 
     /* open input file */
     CDS_file = fopen(CDS_file_name, "r");
@@ -332,13 +332,13 @@ void readCacheDescriptions(char* CDS_file_name)
             /* we use a linked list for all the cache descriptions,
                but we want to keep the list in the same order tha
                we read them in.  Bummer. */
-            if (CDS_root == 0)
+            if (cacheDescriptionRoot == 0)
                 {
-                    CDS_root = cds;
+                    cacheDescriptionRoot = cds;
                 }
             else
                 {
-                    CDS *q = CDS_root;
+                    CacheDescription*q = cacheDescriptionRoot;
                     while (q->next != 0) q = q->next;
                     q->next = cds;
                 }

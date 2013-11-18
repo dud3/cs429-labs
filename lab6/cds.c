@@ -64,39 +64,21 @@ int percent(int a, int b) {
 }
 
 void printCacheStatisticsForCache(Cache* cache) {
-    fprintf(stdout, "%s: %d entries of lines of %d bytes; %s, %s, %s\n",
-            c->name, c->entries, c->cacheLineSize,
-            printSetsAndWays(c),
-            c->write_back ? "write-back" : "write-thru",
-            CRP_name(c));
-
-    fprintf(stdout, "%s: %d accesses, %d hits (%d%%), %d misses, %d miss reads, %d miss writes\n",
-            c->name, c->number_total_cache_access,
-            c->number_cache_hits, percent(c->number_cache_hits, c->number_total_cache_access),
-            c->number_cache_misses, c->number_miss_reads, c->number_miss_writes);
-
-    if (c->write_back)
-        fprintf(stdout, "%s: %d dirty cache lines remain\n", c->name, countDirtyLines(c));
+    printf("%s: %d entries of lines of %d bytes; %s, %s, %s\n", cache->name, cache->entries, cache->cacheLineSize, printSetsAndWays(cache), cache->writeBack ? "write-back" : "write-thru", cacheReplacementPolicyName(c));
+    printf("%s: %d accesses, %d hits (%d%%), %d misses, %d miss reads, %d miss writes\n", cache->name, cache->totalCacheAccess, cache->totalCacheHits, percent(cache->totalCacheHits, cache->totalCacheAccess), cache->totalCacheMisses, cache->totalMissReads, cache->totalMissWrites);
+    if (cache->writeBack) {
+        printf("%s: %d dirty cache lines remain\n", cache->name, countDirtyLines(c));
+    }
 }
 
-
-void printCacheStatistics_for_one_cds(CDS *cds)
-{
-    fprintf(stdout, "      %d addresses (%d %s, %d %s, %d %s)\n",
-            cds->number_of_memory_reference,
-            cds->number_of_type[FETCH], memory_reference_type_name(FETCH),
-            cds->number_of_type[LOAD], memory_reference_type_name(LOAD),
-            cds->number_of_type[STORE], memory_reference_type_name(STORE));
-
-    printCacheStatistics_for_one_cache(cds->c);
-
-    fprintf(stdout, "\n");
+void printCacheStatisticsForCacheDescription(CacheDescription* cacheDescription) {
+    printf("      %d addresses (%d %s, %d %s, %d %s)\n", cds->numberOfMemoryReference, cds->numberOfType[FETCH], memoryAccessTypeName(FETCH), cds->numberOfType[LOAD], memoryAccessTypeName(LOAD), cds->numberOfType[STORE], memoryAccessTypeName(STORE));
+    printCacheStatisticsForCache(cacheDescription->cache);
+    printf("\n");
 }
 
-
-void printCacheStatistics(void)
-{
-    CDS *cds = CDS_root;
+void printCacheStatistics() {
+    CacheDescription *cds = cacheDescriptionRoot;
     while (cds != 0)
         {
             printCacheStatistics_for_one_cds(cds);
@@ -111,7 +93,7 @@ void printCacheStatistics(void)
 /* ***************************************************************** */
 
 
-void initCache(CDS* cds) {
+void initCache(CacheDescription* cds) {
     /* we need one cache line for every entry */
     cds->c->c_line = (cache_line*) calloc(cds->c->entries, sizeof(cache_line));
     cds->c->victimCache.cacheLine = (VictimCacheLine*) calloc(cds->c->victimCache.entries, sizeof(VictimCacheLine));
@@ -119,7 +101,7 @@ void initCache(CDS* cds) {
 
 
 void initCaches() {
-    CDS* cds = CDS_root;
+    CacheDescription* cds = cacheDescriptionRoot;
     while (cds != 0) {
         initCache(cds);
         cds = cds->next;
@@ -132,17 +114,17 @@ void initCaches() {
 /*                                                                   */
 /* ***************************************************************** */
 
-void initCacheForTrace(CDS* cds) {
+void initCacheForTrace(CacheDescription* cds) {
     int i;
     for (i = 0; i < NUMBER_OF_MEMORY_ACCESS_TYPE; ++i) {
-        cds->number_of_type[i] = 0;
+        cds->numberOfType[i] = 0;
     }
-    cds->number_of_memory_reference = 0;
-    cds->c->number_miss_reads = 0;
-    cds->c->number_miss_writes = 0;
-    cds->c->number_total_cache_access = 0;
-    cds->c->number_cache_hits = 0;
-    cds->c->number_cache_misses = 0;
+    cds->numberOfMemoryReference = 0;
+    cds->c->totalMissReads = 0;
+    cds->c->totalMissWrites = 0;
+    cds->c->totalCacheAccess = 0;
+    cds->c->totalCacheHits = 0;
+    cds->c->totalCacheMisses = 0;
     cds->c->victimCache.totalCacheAccess = 0;
     cds->c->victimCache.totalCacheHits = 0;
     cds->c->victimCache.totalCacheMisses = 0;
@@ -151,7 +133,7 @@ void initCacheForTrace(CDS* cds) {
 }
 
 void initCachesForTrace() {
-    CDS* cds = CDS_root;
+    CacheDescription* cds = cacheDescriptionRoot;
     while (cds != 0) {
         initCacheForTrace(cds);
         cds = cds->next;
@@ -174,7 +156,7 @@ void deleteCacheLine(struct cache* c) {
     }
 }
 
-void deleteCache(CDS* cds) {
+void deleteCache(CacheDescription* cds) {
     deleteCacheLine(cds->c);
     free(cds->c);
     free(cds->name);
@@ -182,9 +164,9 @@ void deleteCache(CDS* cds) {
 }
 
 void deleteCaches() {
-    CDS* cds = CDS_root;
+    CacheDescription* cds = cacheDescriptionRoot;
     while (cds != 0) {
-        CDS* old = cds;
+        CacheDescription* old = cds;
         cds = cds->next;
         deleteCache(old);
     }
