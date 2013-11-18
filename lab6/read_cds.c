@@ -4,6 +4,7 @@
 
 #define MIN_TOKEN_SIZE 128
 
+// TODO Hide implementation in .h files
 typedef struct {
     int length;
     char* value;
@@ -22,33 +23,22 @@ void deleteToken(Token* t) {
 }
 
 void putCharInTokenAt(Token* t, char c, int i) {
-    if (i >= t->length)
-    {
-        /* need more space */
+    if (t->length <= i) {
         t->length = 2 * t->length;
         t->value = (char*) realloc(t->value, t->length);
-        if (t->value == 0)
-        {
-            fprintf(stderr, "Hell has frozen over!!!\n");
+        if (t->value == 0) {
+            fprintf(stderr, "Cannot allocate memory\n");
             exit(-1);
         }
     }
     t->value[i] = c;
 }
 
-
-void get_token(FILE *CDS_file, Token *t)
-{
+void getToken(FILE* cacheDescriptionFile, Token *t) {
     int c;
-
-    /* get the next token in the input stream */
     int i = 0;
-
-    /* token is empty to start */
     putCharInTokenAt(t, '\0', i);
-
-    /* skip spacing, look for first character */
-    c = skipBlanks(CDS_file);
+    c = skipBlanks(cacheDescriptionFile);
     if (c == EOF) return;
 
     while (isalnum(c) || (c == '_'))
@@ -56,11 +46,9 @@ void get_token(FILE *CDS_file, Token *t)
         putCharInTokenAt(t, c, i);
         i = i + 1;
         putCharInTokenAt(t, '\0', i);
-        c = getc(CDS_file);
+        c = getc(cacheDescriptionFile);
     }
-
-    /* went one too far, put it back */
-    ungetc(c, CDS_file);
+    ungetc(c, cacheDescriptionFile);
 }
 
 
@@ -73,23 +61,23 @@ void get_token(FILE *CDS_file, Token *t)
 /* So, we read a key and a value and define the field of the
    cacheDescription defined by the key to have the given value. */
 
-int get_key_value_pair(FILE *CDS_file, Token *key, Token *value)
+int getKeyValuePair(FILE *cacheDescriptionFile, Token *key, Token *value)
 {
     int c;
 
     /* skip initial spaces */
-    c = skipBlanks(CDS_file);
+    c = skipBlanks(cacheDescriptionFile);
     if (c == EOF) return EOF;
     if (c == '}') return EOF;
 
     /* went one too far, put it back */
-    ungetc(c, CDS_file);
+    ungetc(c, cacheDescriptionFile);
 
     /* we want a string for the key */
-    get_token(CDS_file, key);
+    getToken(cacheDescriptionFile, key);
 
     /* skip spacing, look for "=" */
-    c = skipBlanks(CDS_file);
+    c = skipBlanks(cacheDescriptionFile);
     if (c == EOF) return EOF;
     if ((c != '=') && (c != ':') && (c != '-'))
     {
@@ -98,10 +86,10 @@ int get_key_value_pair(FILE *CDS_file, Token *key, Token *value)
     }
 
     /* we want a second string for the value */
-    get_token(CDS_file, value);
+    getToken(cacheDescriptionFile, value);
 
     /* skip spacing, look for "," */
-    c = skipBlanks(CDS_file);
+    c = skipBlanks(cacheDescriptionFile);
     if (c == EOF) return EOF;
     if ((c != ',') && (c != ';') && (c != '}'))
     {
@@ -112,7 +100,7 @@ int get_key_value_pair(FILE *CDS_file, Token *key, Token *value)
     {
         /* we have the last pair, terminated by a '}'.
            put it back, so that this last pair is processed */
-        ungetc(c, CDS_file);
+        ungetc(c, cacheDescriptionFile);
         return ',';
     }
 
@@ -238,13 +226,13 @@ void defineKeyValuePair(CacheDescription* cacheDescription, Token* key, Token* v
 /*                                                                   */
 /* ***************************************************************** */
 
-CacheDescription* Read_CDS_file_entry(FILE *CDS_file) {
+CacheDescription* readCacheDescriptionFileEntry(FILE *cacheDescriptionFile) {
     int c;
 
-    c = skipBlanks(CDS_file);
+    c = skipBlanks(cacheDescriptionFile);
     while (c == '#')
     {
-        c = skipLine(CDS_file);
+        c = skipLine(cacheDescriptionFile);
     }
     if (c == EOF) return 0;
 
@@ -276,7 +264,7 @@ CacheDescription* Read_CDS_file_entry(FILE *CDS_file) {
 
     Token* key = createToken();
     Token* value = createToken();
-    while (((c = get_key_value_pair(CDS_file, key, value)) != EOF) && (c != '}')) {
+    while (((c = getKeyValuePair(cacheDescriptionFile, key, value)) != EOF) && (c != '}')) {
         defineKeyValuePair(cacheDescription, key, value);
     }
     deleteToken(key);
@@ -298,16 +286,16 @@ CacheDescription* Read_CDS_file_entry(FILE *CDS_file) {
 
 void readCacheDescriptions(char* CDS_file_name)
 {
-    FILE *CDS_file;
+    FILE *cacheDescriptionFile;
     CacheDescription*cacheDescription;
 
     /* open input file */
-    CDS_file = fopen(CDS_file_name, "r");
-    if (CDS_file == 0)
+    cacheDescriptionFile = fopen(CDS_file_name, "r");
+    if (cacheDescriptionFile == 0)
     {
         fprintf (stderr,"Cannot open CDS file %s\n", CDS_file_name);
     }
-    while ((cacheDescription = Read_CDS_file_entry(CDS_file)) != 0)
+    while ((cacheDescription = readCacheDescriptionFileEntry(cacheDescriptionFile)) != 0)
     {
         /* we use a linked list for all the cache descriptions,
            but we want to keep the list in the same order tha
@@ -324,5 +312,5 @@ void readCacheDescriptions(char* CDS_file_name)
         }
         cacheDescription->next = 0;
     }
-    fclose(CDS_file);
+    fclose(cacheDescriptionFile);
 }
