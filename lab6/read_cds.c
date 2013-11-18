@@ -1,3 +1,4 @@
+#include "read_cds.h"
 #include "global.h"
 #include "utils.h"
 #include "cds.h"
@@ -26,7 +27,7 @@ void putCharInTokenAt(Token* t, char c, int i) {
     if (t->length <= i) {
         t->length = 2 * t->length;
         t->value = (char*) realloc(t->value, t->length);
-        if (t->value == 0) {
+        if (!t->value) {
             fprintf(stderr, "Cannot allocate memory\n");
             exit(-1);
         }
@@ -39,278 +40,188 @@ void getToken(FILE* cacheDescriptionFile, Token *t) {
     int i = 0;
     putCharInTokenAt(t, '\0', i);
     c = skipBlanks(cacheDescriptionFile);
-    if (c == EOF) return;
-
-    while (isalnum(c) || (c == '_'))
-    {
+    if (c == EOF) {
+        return;
+    }
+    while (isalnum(c) || (c == '_')) {
         putCharInTokenAt(t, c, i);
-        i = i + 1;
+        ++i;
         putCharInTokenAt(t, '\0', i);
         c = getc(cacheDescriptionFile);
     }
     ungetc(c, cacheDescriptionFile);
 }
 
-
-/* ***************************************************************** */
-/*                                                                   */
-/*                                                                   */
-/* ***************************************************************** */
-
-/* Syntax for Cache Descriptions:  { key=value, key=value, ... } */
-/* So, we read a key and a value and define the field of the
-   cacheDescription defined by the key to have the given value. */
-
-int getKeyValuePair(FILE *cacheDescriptionFile, Token *key, Token *value)
-{
+int getKeyValuePair(FILE* cacheDescriptionFile, Token* key, Token* value) {
     int c;
-
-    /* skip initial spaces */
     c = skipBlanks(cacheDescriptionFile);
-    if (c == EOF) return EOF;
-    if (c == '}') return EOF;
-
-    /* went one too far, put it back */
+    if (c == EOF) {
+        return EOF;
+    }
+    if (c == '}') {
+        return EOF;
+    }
     ungetc(c, cacheDescriptionFile);
-
-    /* we want a string for the key */
     getToken(cacheDescriptionFile, key);
-
-    /* skip spacing, look for "=" */
     c = skipBlanks(cacheDescriptionFile);
-    if (c == EOF) return EOF;
-    if ((c != '=') && (c != ':') && (c != '-'))
-    {
+    if (c == EOF) {
+        return EOF;
+    }
+    if ((c != '=') && (c != ':') && (c != '-')) {
         fprintf(stderr, "not key=value pair: %s %c\n", key->value, c);
         return EOF;
     }
-
-    /* we want a second string for the value */
     getToken(cacheDescriptionFile, value);
-
-    /* skip spacing, look for "," */
     c = skipBlanks(cacheDescriptionFile);
-    if (c == EOF) return EOF;
-    if ((c != ',') && (c != ';') && (c != '}'))
-    {
+    if (c == EOF) {
+        return EOF;
+    }
+    if ((c != ',') && (c != ';') && (c != '}')) {
         fprintf(stderr, "not key=value pair: %s %c\n", key->value, c);
         return EOF;
     }
-    if (c == '}')
-    {
-        /* we have the last pair, terminated by a '}'.
-           put it back, so that this last pair is processed */
+    if (c == '}') { // Reached last pair, but let it process this and terminate at the next cycle
         ungetc(c, cacheDescriptionFile);
-        return ',';
     }
-
     return c;
 }
-
 
 void defineKeyValuePair(CacheDescription* cacheDescription, Token* key, Token* value) {
     if (debug) {
         fprintf(debugFile, "define %s = %s \n", key->value, value->value);
     }
-    /* look for the name */
-    if (strcasestr(key->value, "name") != 0) {
-        if (cacheDescription->name != 0) {
+    if (strcasestr(key->value, "name")) {
+        if (cacheDescription->name) {
             free(cacheDescription->name);
         }
         cacheDescription->name = allocateString(value->value);
         return;
     }
-
-    /* look for line size */
-    if ((strcasestr(key->value, "line") != 0) && (strcasestr(key->value, "size") != 0))
-    {
-        int n = atoi(value->value);
-        cacheDescription->cache->cacheLineSize = n;
+    if (strcasestr(key->value, "line") && strcasestr(key->value, "size")) {
+        cacheDescription->cache->cacheLineSize = atoi(value->value);
         return;
     }
-
-    /* look for number of cache entries */
-    if (strcasestr(key->value, "entries") != 0)
-    {
-        int n = atoi(value->value);
-        cacheDescription->cache->entries = n;
+    if (strcasestr(key->value, "entries")) {
+        cacheDescription->cache->entries = atoi(value->value);
         return;
     }
-
-    /* look for the number of ways */
-    if (strcasestr(key->value, "ways") != 0)
-    {
-        int n = atoi(value->value);
-        cacheDescription->cache->numberOfWays = n;
+    if (strcasestr(key->value, "ways")) {
+        cacheDescription->cache->numberOfWays = atoi(value->value);
         return;
     }
-
-    /* look for write-back */
-    if ((strcasestr(key->value, "write") != 0) && (strcasestr(key->value, "back") != 0))
-    {
-        if (strcasestr(value->value, "true") != 0)
-        {
+    if (strcasestr(key->value, "write") && strcasestr(key->value, "back")) {
+        if (strcasestr(value->value, "true")) {
             cacheDescription->cache->writeBack = 1;
             return;
         }
-        if (strcasestr(value->value, "false") != 0)
-        {
+        if (strcasestr(value->value, "false")) {
             cacheDescription->cache->writeBack = 0;
             return;
         }
     }
-
-    /* look for write-thru */
-    if ((strcasestr(key->value, "write") != 0) && (strcasestr(key->value, "thru") != 0))
-    {
-        if (strcasestr(value->value, "true") != 0)
-        {
+    if ((strcasestr(key->value, "write")) && (strcasestr(key->value, "thru"))) {
+        if (strcasestr(value->value, "true")) {
             cacheDescription->cache->writeBack = 0;
             return;
         }
-        if (strcasestr(value->value, "false") != 0)
-        {
+        if (strcasestr(value->value, "false")) {
             cacheDescription->cache->writeBack = 1;
             return;
         }
     }
-
-    /* look for the replacement policy */
-    if ((strcasestr(key->value, "policy") != 0) || (strcasestr(key->value, "replace") != 0))
-    {
-        if (strcasestr(value->value, "LRU") != 0)
-        {
+    if ((strcasestr(key->value, "policy")) || (strcasestr(key->value, "replace"))) {
+        if (strcasestr(value->value, "LRU")) {
             cacheDescription->cache->replacementPolicy = LRU;
             return;
         }
-        if (strcasestr(value->value, "LFU") != 0)
-        {
+        if (strcasestr(value->value, "LFU")) {
             cacheDescription->cache->replacementPolicy = LFU;
             return;
         }
-        if (strcasestr(value->value, "random") != 0)
-        {
+        if (strcasestr(value->value, "random")) {
             cacheDescription->cache->replacementPolicy = RANDOM;
             return;
         }
-        if (strcasestr(value->value, "FIFO") != 0)
-        {
+        if (strcasestr(value->value, "FIFO")) {
             cacheDescription->cache->replacementPolicy = FIFO;
             return;
         }
     }
-
-    /* look for line size */
-    if ((strcasestr(key->value, "decay") != 0) && (strcasestr(key->value, "interval") != 0)) {
-        int n = atoi(value->value);
-        cacheDescription->cache->lfuDecayInterval = n;
+    if ((strcasestr(key->value, "decay")) && (strcasestr(key->value, "interval"))) {
+        cacheDescription->cache->lfuDecayInterval = atoi(value->value);
         return;
     }
-    if (strcasestr(key->value, "ways") != 0) {
-        int n = atoi(value->value);
-        cacheDescription->cache->numberOfWays = n;
+    if (strcasestr(key->value, "ways")) {
+        cacheDescription->cache->numberOfWays = atoi(value->value);
         return;
     }
     // Define victim cache
-    if (strcasestr(key->value, "victim") != 0) {
-        int n = atoi(value->value);
-        cacheDescription->cache->victimCache.entries = n;
+    if (strcasestr(key->value, "victim")) {
+        cacheDescription->cache->victimCache.entries = atoi(value->value);
         return;
     }
     fprintf(stderr, "don't understand %s = %s\n",key->value, value->value);
 }
 
-
-/* ***************************************************************** */
-/*                                                                   */
-/*                                                                   */
-/* ***************************************************************** */
-
-CacheDescription* readCacheDescriptionFileEntry(FILE *cacheDescriptionFile) {
+CacheDescription* readCacheDescriptionFileEntry(FILE* cacheDescriptionFile) {
     int c;
-
+    Token* key;
+    Token* value;
     c = skipBlanks(cacheDescriptionFile);
-    while (c == '#')
-    {
+    while (c == '#') {
         c = skipLine(cacheDescriptionFile);
     }
-    if (c == EOF) return 0;
-
-    /* Syntax for Cache Descriptions:  { key=value, key=value, ... } */
-    /* So, we read a key and a value and define the field of the
-       cacheDescription defined by the key to have the given value. */
-
-    if (c != '{')
-    {
+    if (c == EOF) {
+        return 0;
+    }
+    if (c != '{') {
         fprintf(stderr, "Cache description should start with {, not %c\n", c);
         return 0;
     }
-
-    /* starting a new cache description.  Get a structure,
-       and fill in default values. */
-    CacheDescription* cacheDescription = (CacheDescription*) malloc(sizeof(CDS));
-    cacheDescription->c = (Cache*) malloc(sizeof(Cache));
+    CacheDescription* cacheDescription = (CacheDescription*) malloc(sizeof(CacheDescription));
     cacheDescription->name = 0;
-
-    /* default values */
-    cacheDescription->cache->cacheLineSize = 64;
-    cacheDescription->cache->entries = 1024;
-    cacheDescription->cache->numberOfWays = 2;
+    cacheDescription->cache = (Cache*) malloc(sizeof(Cache));
     cacheDescription->cache->writeBack = 1;
-    cacheDescription->cache->replacementPolicy = FIFO;
+    cacheDescription->cache->cacheLineSize = 64;
+    cacheDescription->cache->numberOfWays = 2;
+    cacheDescription->cache->entries = 1024;
     cacheDescription->cache->lfuDecayInterval = 200000;
+    cacheDescription->cache->replacementPolicy = FIFO;
     cacheDescription->cache->cacheLine = 0;
     cacheDescription->cache->victimCache.entries = 0;
-
-    Token* key = createToken();
-    Token* value = createToken();
-    while (((c = getKeyValuePair(cacheDescriptionFile, key, value)) != EOF) && (c != '}')) {
+    key = createToken();
+    value = createToken();
+    while ((c = getKeyValuePair(cacheDescriptionFile, key, value)) != EOF) {
         defineKeyValuePair(cacheDescription, key, value);
     }
     deleteToken(key);
     deleteToken(value);
-
     cacheDescription->cache->name = allocateString(cacheDescription->name);
-
     if (debug) {
         debugPrintCds(cacheDescription);
     }
     return cacheDescription;
 }
 
-
-/* ***************************************************************** */
-/*                                                                   */
-/*                                                                   */
-/* ***************************************************************** */
-
-void readCacheDescriptions(char* cacheDescriptionFileName)
-{
-    FILE *cacheDescriptionFile;
-    CacheDescription*cacheDescription;
-
-    /* open input file */
+void readCacheDescriptions(char* cacheDescriptionFileName) {
+    FILE* cacheDescriptionFile;
+    CacheDescription* cacheDescription;
     cacheDescriptionFile = fopen(cacheDescriptionFileName, "r");
-    if (cacheDescriptionFile == 0)
-    {
+    if (!cacheDescriptionFile) {
         fprintf (stderr,"Cannot open CDS file %s\n", cacheDescriptionFileName);
     }
-    while ((cacheDescription = readCacheDescriptionFileEntry(cacheDescriptionFile)) != 0)
-    {
-        /* we use a linked list for all the cache descriptions,
-           but we want to keep the list in the same order tha
-           we read them in.  Bummer. */
-        if (cacheDescriptionRoot == 0)
-        {
+    while (cacheDescription = readCacheDescriptionFileEntry(cacheDescriptionFile)) {
+        if (!cacheDescriptionRoot) {
             cacheDescriptionRoot = cacheDescription;
-        }
-        else
-        {
-            CacheDescription*q = cacheDescriptionRoot;
-            while (q->next != 0) q = q->next;
+        } else {
+            CacheDescription* q = cacheDescriptionRoot;
+            while (q->next) {
+                q = q->next;
+            }
             q->next = cacheDescription;
         }
         cacheDescription->next = 0;
     }
     fclose(cacheDescriptionFile);
 }
+

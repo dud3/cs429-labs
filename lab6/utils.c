@@ -56,7 +56,7 @@ int decValue(char c) {
 
 char* allocString(const char* name) {
     char* p;
-    if (name == 0) {
+    if (!name) {
         return 0;
     }
     p = (char*) malloc(strlen(name) + 1);

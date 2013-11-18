@@ -157,7 +157,7 @@ void deleteCacheDescription(CacheDescription* cacheDescription) {
 
 void deleteCaches() {
     CacheDescription* cacheDescription = cacheDescriptionRoot;
-    while (cacheDescription != 0) {
+    while (cacheDescription) {
         CacheDescription* old = cacheDescription;
         cacheDescription = cacheDescription->next;
         deleteCacheDescription(old);

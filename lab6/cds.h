@@ -43,10 +43,10 @@ typedef struct {
 } Cache;
 
 typedef struct CacheDescription {
-    char* name;
     int numberOfMemoryReference;
     int numberOfType[NUMBER_OF_MEMORY_ACCESS_TYPE];
     struct CacheDescription* next;
+    char* name;
     Cache* cache;
 } CacheDescription;
 

@@ -73,7 +73,7 @@ void readReference(FILE* trace_file, memory_reference* reference) {
 /* ***************************************************************** */
 
 
-int Read_trace_file_line(FILE *trace_file, memory_reference *reference)
+int Read_trace_file_line(FILE* trace_file, memory_reference *reference)
 {
     int c;
 
@@ -138,7 +138,7 @@ void Check_For_Decay(int time, Cache *c)
 {
     if (cache->replacement_policy != CRP_LFU) return;
 
-    if ((time % cache->LFU_Decay_Interval) == 0)
+    if (!(time % cache->LFU_Decay_Interval))
         {
             int i;
             if (debug) fprintf(debugFile, "%s: LFU decay for all LFU counters\n", cache->name);
@@ -473,14 +473,14 @@ void simulateCaches(char* traceFileName) {
     FILE* traceFile;
     memory_reference reference;
     traceFile = fopen(traceFileName, "r");
-    if (traceFile == 0) {
+    if (!traceFile) {
         fprintf (stderr,"Cannot open trace file %s\n", traceFileName);
         exit(1);
     }
     initCachesForTrace();
     while (Read_trace_file_line(traceFile, &reference) != EOF) {
         CacheDescription* cacheDescription = cacheDescriptionRoot;
-        while (cacheDescription != 0) {
+        while (cacheDescription) {
             simulateReferenceToMemory(cacheDescription, &reference);
             cacheDescription = cacheDescription->next;
         }
