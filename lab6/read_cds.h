@@ -2,5 +2,5 @@
 #include "cds.h"
 #include <stdio.h>
 
-CacheDescription* readCacheDescriptionFileEntry(FILE*);
-void readCacheDescriptions(char*);
+void readCacheDescriptions(const char*);
+

@@ -1,37 +1,17 @@
-
-/* ***************************************************************** */
-/*                                                                   */
-/*                                                                   */
-/* ***************************************************************** */
-
-/* The code to read a memory trace and simulate it on the various
-   caches. */
-
+#include "simulate.h"
 #include "global.h"
-#include "utils.h"        // utility functions
-#include "cds.h"          // Cache Description Structures
+#include "utils.h"
+#include "cds.h"
 
+typedef struct {
+    int address;
+    int length;
+    enum MemoryAccessType type;
+} MemoryReference;
 
-struct memory_reference
-{
-    enum MemoryAccessType  type;
-    int           address;
-    unsigned int             length;
-};
-typedef struct memory_reference memory_reference;
+static int traceLineNumber;
 
-static int trace_line_number;
-
-
-
-/* ***************************************************************** */
-/*                                                                   */
-/*                                                                   */
-/* ***************************************************************** */
-
-/* read on input line */
-
-void readReference(FILE* trace_file, memory_reference* reference) {
+void readReference(FILE* trace_file, MemoryReference* reference) {
     int c;
     /* we have the first character; it defined the
        memory access type.  Skip any blanks, get the
@@ -45,7 +25,7 @@ void readReference(FILE* trace_file, memory_reference* reference) {
         c = getc(trace_file);
     }
     if (c != ',') {
-        fprintf(stderr, "bad trace file input at line %d: %c\n", trace_line_number, c);
+        fprintf(stderr, "bad trace file input at line %d: %c\n", traceLineNumber, c);
         exit(-1);
     }
     /* skip the comma */
@@ -73,16 +53,16 @@ void readReference(FILE* trace_file, memory_reference* reference) {
 /* ***************************************************************** */
 
 
-int Read_trace_file_line(FILE* trace_file, memory_reference *reference)
+int Read_trace_file_line(FILE* trace_file, MemoryReference *reference)
 {
     int c;
 
-    trace_line_number = 0;
+    traceLineNumber = 0;
 
     while ((c = getc(trace_file)) != EOF)
         {
             /* start the next line */
-            trace_line_number += 1;
+            traceLineNumber += 1;
 
             /* skip any leading blanks */
             while (isspace(c) && (c != EOF)) c = getc(trace_file);
@@ -358,7 +338,7 @@ void evict_from_cache(CacheDescription* cacheDescription, CacheLine* victim_line
 /*                                                                   */
 /* ***************************************************************** */
 
-void simulateReferenceToCacheLine(CacheDescription* cacheDescription, memory_reference* reference) {
+void simulateReferenceToCacheLine(CacheDescription* cacheDescription, MemoryReference* reference) {
     char found = 0;
     int cacheEntryIndex;
     CacheLine* cacheEntry = 0;
@@ -430,7 +410,7 @@ void simulateReferenceToCacheLine(CacheDescription* cacheDescription, memory_ref
 /*                                                                   */
 /* ***************************************************************** */
 
-void simulateReferenceToMemory(CacheDescription* cacheDescription, memory_reference* reference) {
+void simulateReferenceToMemory(CacheDescription* cacheDescription, MemoryReference* reference) {
     cacheDescription->numberOfMemoryReference += 1;
     cacheDescription->numberOfType[reference->type] += 1;
     // Check if the entire reference fits into just one cache line
@@ -442,8 +422,8 @@ void simulateReferenceToMemory(CacheDescription* cacheDescription, memory_refere
         {
             /* reference spans two cache lines.  Convert it to two
                references: the first cache line, and the second cache line */
-            memory_reference reference1;
-            memory_reference reference2;
+            MemoryReference reference1;
+            MemoryReference reference2;
             /* easiest to compute the second part first */
             reference2.type = reference->type;
             reference2.address = getBaseCacheAddress(cacheDescription->c, reference->address + reference->length -1);
@@ -458,20 +438,9 @@ void simulateReferenceToMemory(CacheDescription* cacheDescription, memory_refere
         }
 }
 
-
-
-
-/* ***************************************************************** */
-/*                                                                   */
-/*                                                                   */
-/* ***************************************************************** */
-
-/* read each input line, and then simulate that reference on each
-   cache. */
-
 void simulateCaches(char* traceFileName) {
     FILE* traceFile;
-    memory_reference reference;
+    MemoryReference reference;
     traceFile = fopen(traceFileName, "r");
     if (!traceFile) {
         fprintf (stderr,"Cannot open trace file %s\n", traceFileName);

@@ -203,7 +203,7 @@ CacheDescription* readCacheDescriptionFileEntry(FILE* cacheDescriptionFile) {
     return cacheDescription;
 }
 
-void readCacheDescriptions(char* cacheDescriptionFileName) {
+void readCacheDescriptions(const char* cacheDescriptionFileName) {
     FILE* cacheDescriptionFile;
     CacheDescription* cacheDescription;
     cacheDescriptionFile = fopen(cacheDescriptionFileName, "r");
