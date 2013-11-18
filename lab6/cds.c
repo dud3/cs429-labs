@@ -79,78 +79,63 @@ void printCacheStatisticsForCacheDescription(CacheDescription* cacheDescription)
 
 void printCacheStatistics() {
     CacheDescription* cacheDescription = cacheDescriptionRoot;
-    while (cacheDescription != 0) {
+    while (cacheDescription) {
         printCacheStatisticsForCacheDescription(cacheDescription);
         cacheDescription = cacheDescription->next;
     }
 }
 
 void initCache(CacheDescription* cacheDescription) {
-    /* we need one cache line for every entry */
-    cacheDescription->c->c_line = (cache_line*) calloc(cacheDescription->c->entries, sizeof(cache_line));
-    cacheDescription->c->victimCache.cacheLine = (VictimCacheLine*) calloc(cacheDescription->c->victimCache.entries, sizeof(VictimCacheLine));
+    cacheDescription->cache->cacheLine = (CacheLine*) calloc(cacheDescription->cache->entries, sizeof(CacheLine));
+    cacheDescription->cache->victimCache.cacheLine = (CacheLine*) calloc(cacheDescription->cache->victimCache.entries, sizeof(CacheLine));
 }
 
 void initCaches() {
     CacheDescription* cacheDescription = cacheDescriptionRoot;
-    while (cacheDescription != 0) {
+    while (cacheDescription) {
         initCache(cacheDescription);
         cacheDescription = cacheDescription->next;
     }
 }
 
-
-/* ***************************************************************** */
-/*                                                                   */
-/*                                                                   */
-/* ***************************************************************** */
-
 void initCacheForTrace(CacheDescription* cacheDescription) {
     int i;
+    cacheDescription->numberOfMemoryReference = 0;
     for (i = 0; i < NUMBER_OF_MEMORY_ACCESS_TYPE; ++i) {
         cacheDescription->numberOfType[i] = 0;
     }
-    cacheDescription->numberOfMemoryReference = 0;
-    cacheDescription->c->totalMissReads = 0;
-    cacheDescription->c->totalMissWrites = 0;
-    cacheDescription->c->totalCacheAccess = 0;
-    cacheDescription->c->totalCacheHits = 0;
-    cacheDescription->c->totalCacheMisses = 0;
-    cacheDescription->c->victimCache.totalCacheAccess = 0;
-    cacheDescription->c->victimCache.totalCacheHits = 0;
-    cacheDescription->c->victimCache.totalCacheMisses = 0;
-    cacheDescription->c->victimCache.totalMissReads = 0;
-    cacheDescription->c->victimCache.totalMissWrites = 0;
+    cacheDescription->cache->totalCacheAccess = 0;
+    cacheDescription->cache->totalCacheHits = 0;
+    cacheDescription->cache->totalCacheMisses = 0;
+    cacheDescription->cache->totalMissReads = 0;
+    cacheDescription->cache->totalMissWrites = 0;
+    cacheDescription->cache->victimCache.totalCacheAccess = 0;
+    cacheDescription->cache->victimCache.totalCacheHits = 0;
+    cacheDescription->cache->victimCache.totalCacheMisses = 0;
+    cacheDescription->cache->victimCache.totalMissReads = 0;
+    cacheDescription->cache->victimCache.totalMissWrites = 0;
 }
 
 void initCachesForTrace() {
     CacheDescription* cacheDescription = cacheDescriptionRoot;
-    while (cacheDescription != 0) {
+    while (cacheDescription) {
         initCacheForTrace(cacheDescription);
         cacheDescription = cacheDescription->next;
     }
 }
 
-
-
-/* ***************************************************************** */
-/*                                                                   */
-/*                                                                   */
-/* ***************************************************************** */
-
-
-void deleteCacheLine(struct cache* c) {
-    free(c->c_line);
-    free(c->name);
-    if (c->victimCache.entries) {
-        free(c->victimCache.cacheLine);
+void deleteCache(Cache* cache) {
+    free(cache->cacheLine);
+    free(cache->name);
+    if (cache->victimCache.entries) {
+        free(cache->victimCache.cacheLine);
     }
+    free(cache);
 }
 
-void deleteCache(CacheDescription* cacheDescription) {
-    deleteCacheLine(cacheDescription->c);
-    free(cacheDescription->c);
+void deleteCacheDescription(CacheDescription* cacheDescription) {
     free(cacheDescription->name);
+    deleteCacheLine(cacheDescription->cache);
     free(cacheDescription);
 }
 

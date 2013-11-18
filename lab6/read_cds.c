@@ -157,7 +157,7 @@ void defineKeyValuePair(CacheDescription* cacheDescription, Token* key, Token* v
     if ((strcasestr(key->string, "line") != 0) && (strcasestr(key->string, "size") != 0))
         {
             int n = atoi(value->string);
-            cacheDescription->c->cacheLineSize = n;
+            cacheDescription->cache->cacheLineSize = n;
             return;
         }
 
@@ -165,7 +165,7 @@ void defineKeyValuePair(CacheDescription* cacheDescription, Token* key, Token* v
     if (strcasestr(key->string, "entries") != 0)
         {
             int n = atoi(value->string);
-            cacheDescription->c->entries = n;
+            cacheDescription->cache->entries = n;
             return;
         }
 
@@ -173,7 +173,7 @@ void defineKeyValuePair(CacheDescription* cacheDescription, Token* key, Token* v
     if (strcasestr(key->string, "ways") != 0)
         {
             int n = atoi(value->string);
-            cacheDescription->c->numberOfWays = n;
+            cacheDescription->cache->numberOfWays = n;
             return;
         }
 
@@ -182,12 +182,12 @@ void defineKeyValuePair(CacheDescription* cacheDescription, Token* key, Token* v
         {
             if (strcasestr(value->string, "true") != 0)
                 {
-                    cacheDescription->c->writeBack = 1;
+                    cacheDescription->cache->writeBack = 1;
                     return;
                 }
             if (strcasestr(value->string, "false") != 0)
                 {
-                    cacheDescription->c->writeBack = 0;
+                    cacheDescription->cache->writeBack = 0;
                     return;
                 }
         }
@@ -197,12 +197,12 @@ void defineKeyValuePair(CacheDescription* cacheDescription, Token* key, Token* v
         {
             if (strcasestr(value->string, "true") != 0)
                 {
-                    cacheDescription->c->writeBack = 0;
+                    cacheDescription->cache->writeBack = 0;
                     return;
                 }
             if (strcasestr(value->string, "false") != 0)
                 {
-                    cacheDescription->c->writeBack = 1;
+                    cacheDescription->cache->writeBack = 1;
                     return;
                 }
         }
@@ -212,22 +212,22 @@ void defineKeyValuePair(CacheDescription* cacheDescription, Token* key, Token* v
         {
             if (strcasestr(value->string, "LRU") != 0)
                 {
-                    cacheDescription->c->replacement_policy = CRP_LRU;
+                    cacheDescription->cache->replacement_policy = CRP_LRU;
                     return;
                 }
             if (strcasestr(value->string, "LFU") != 0)
                 {
-                    cacheDescription->c->replacement_policy = CRP_LFU;
+                    cacheDescription->cache->replacement_policy = CRP_LFU;
                     return;
                 }
             if (strcasestr(value->string, "random") != 0)
                 {
-                    cacheDescription->c->replacement_policy = CRP_RANDOM;
+                    cacheDescription->cache->replacement_policy = CRP_RANDOM;
                     return;
                 }
             if (strcasestr(value->string, "FIFO") != 0)
                 {
-                    cacheDescription->c->replacement_policy = CRP_FIFO;
+                    cacheDescription->cache->replacement_policy = CRP_FIFO;
                     return;
                 }
         }
@@ -235,18 +235,18 @@ void defineKeyValuePair(CacheDescription* cacheDescription, Token* key, Token* v
     /* look for line size */
     if ((strcasestr(key->string, "decay") != 0) && (strcasestr(key->string, "interval") != 0)) {
         int n = atoi(value->string);
-        cacheDescription->c->LFU_Decay_Interval = n;
+        cacheDescription->cache->LFU_Decay_Interval = n;
         return;
     }
     if (strcasestr(key->string, "ways") != 0) {
         int n = atoi(value->string);
-        cacheDescription->c->numberOfWays = n;
+        cacheDescription->cache->numberOfWays = n;
         return;
     }
     // Define victim cache
     if (strcasestr(key->string, "victim") != 0) {
         int n = atoi(value->string);
-        cacheDescription->c->victimCache.entries = n;
+        cacheDescription->cache->victimCache.entries = n;
         return;
     }
     fprintf(stderr, "don't understand %s = %s\n",key->string, value->string);
@@ -281,18 +281,18 @@ CacheDescription* Read_CDS_file_entry(FILE *CDS_file) {
     /* starting a new cache description.  Get a structure,
        and fill in default values. */
     CacheDescription* cacheDescription = (CacheDescription*) malloc(sizeof(CDS));
-    cacheDescription->c = (struct cache*) malloc(sizeof(struct cache));
+    cacheDescription->c = (Cache*) malloc(sizeof(Cache));
     cacheDescription->name = 0;
 
     /* default values */
-    cacheDescription->c->cacheLineSize = 64;
-    cacheDescription->c->entries = 1024;
-    cacheDescription->c->numberOfWays = 2;
-    cacheDescription->c->writeBack = 1;
-    cacheDescription->c->replacement_policy = CRP_FIFO;
-    cacheDescription->c->LFU_Decay_Interval = 200000;
-    cacheDescription->c->c_line = 0;
-    cacheDescription->c->victimCache.entries = 0;
+    cacheDescription->cache->cacheLineSize = 64;
+    cacheDescription->cache->entries = 1024;
+    cacheDescription->cache->numberOfWays = 2;
+    cacheDescription->cache->writeBack = 1;
+    cacheDescription->cache->replacement_policy = CRP_FIFO;
+    cacheDescription->cache->LFU_Decay_Interval = 200000;
+    cacheDescription->cache->cacheLine = 0;
+    cacheDescription->cache->victimCache.entries = 0;
 
     Token* key = new_token();
     Token* value = new_token();
@@ -302,7 +302,7 @@ CacheDescription* Read_CDS_file_entry(FILE *CDS_file) {
     delete_token(key);
     delete_token(value);
 
-    cacheDescription->c->name = allocateString(cacheDescription->name);
+    cacheDescription->cache->name = allocateString(cacheDescription->name);
 
     if (debug) {
         debugPrintCds(cacheDescription);

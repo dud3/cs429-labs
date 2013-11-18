@@ -44,10 +44,10 @@ typedef struct {
 
 typedef struct {
     char* name;
-    struct CacheDescription* next;
-    Cache* cache;
     int numberOfMemoryReference;
     int numberOfType[NUMBER_OF_MEMORY_ACCESS_TYPE];
+    struct CacheDescription* next;
+    Cache* cache;
 } CacheDescription;
 
 extern CacheDescription* cacheDescriptionRoot;
