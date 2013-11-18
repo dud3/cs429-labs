@@ -16,13 +16,10 @@
 
 #define CAST(t,v)  ((t)(v))
 
-typedef short Boolean;
 #define TRUE 1
 #define FALSE 0
 
-typedef char *String;
-
-Boolean debug;
+extern char debug;
 FILE *debug_file;
 
 /* A byte is just 8 bits */

@@ -6,8 +6,8 @@
 
 #include "global.h"
 
-String remember_string(const String name);
-String augment_name(const String name, const String plus);
+char* remember_string(const char* name);
+char* augment_name(const char* name, const char* plus);
 
 /* ***************************************************************** */
 /*                                                                   */
@@ -18,7 +18,7 @@ int which_power(int n);
 unsigned int mask_of(int n);
 
 
-Boolean ishex(int c);
+char ishex(int c);
 int hexvalue(int c);
 int decvalue(int c);
 

@@ -1,19 +1,5 @@
-
-/* ***************************************************************** */
-/*                                                                   */
-/*                                                                   */
-/* ***************************************************************** */
-
-/* A program to simulate cache behaviour on a valgrind memory trace. */
-
-/* The input is a description of a set of caches, and a memory trace.
-   We run the memory trace on each of the caches, and report statistics. */
-
-
 #include "global.h"
 #include "caches.h"
-
-Boolean debug = FALSE;
 
 
 /* ***************************************************************** */
@@ -25,7 +11,7 @@ void usage(void) {
     fprintf (stderr,"usage: caches [-D] cache-descriptions-file  memory-trace-file\n");
 }
 
-void scanargs(String s)
+void scanargs(char* s)
 {
     /* check each character of the option list for
        its meaning. */
@@ -60,7 +46,7 @@ void scanargs(String s)
 /*                                                                   */
 /* ***************************************************************** */
 
-int main(int argc, String *argv)
+int main(int argc, char* *argv)
 {
     /* main driver program.  There are two inpu
        files.

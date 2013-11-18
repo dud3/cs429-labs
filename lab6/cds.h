@@ -55,9 +55,9 @@ enum CRP
 
 struct cache_line
 {
-    Boolean valid;
+    char valid;
+    char dirty;
     memory_address tag;
-    Boolean dirty;
     int     replacement_data;
     byte   *actual_data;
 };
@@ -83,11 +83,11 @@ typedef struct {
 
 struct cache
 {
-    String      name;
+    char*      name;
 
     int         cache_line_size;
     int         number_of_ways;
-    Boolean     write_back;
+    char     write_back;
     enum CRP    replacement_policy;
 
     /* how often to decrease the counts for LFU */
@@ -116,7 +116,7 @@ struct cache
 struct CDS {
     struct CDS *next;  /* linked list of all the CDS */
 
-    String      name;
+    char*      name;
 
     struct cache* c;
 
@@ -136,6 +136,6 @@ typedef struct CDS CDS;
 /* a linked list of all the cache descriptors */
 struct CDS *CDS_root;
 
-extern String memory_reference_type_name(enum memory_access_type type);
+extern char* memory_reference_type_name(enum memory_access_type type);
 
 #endif

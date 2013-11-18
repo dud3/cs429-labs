@@ -21,7 +21,7 @@
 
 struct Token
 {
-    String string;
+    char* string;
     int    length;
 };
 typedef struct Token Token;
@@ -30,7 +30,7 @@ Token *new_token(void)
 {
     Token *t = CAST(Token *, malloc(sizeof(Token)));
     t->length = MIN_TOKEN_SIZE;
-    t->string = CAST(String, malloc(t->length));
+    t->string = CAST(char*, malloc(t->length));
     return(t);
 }
 
@@ -316,7 +316,7 @@ CDS* Read_CDS_file_entry(FILE *CDS_file) {
 /*                                                                   */
 /* ***************************************************************** */
 
-void Read_Cache_Descriptions(String CDS_file_name)
+void Read_Cache_Descriptions(char* CDS_file_name)
 {
     FILE *CDS_file;
     CDS *cds;

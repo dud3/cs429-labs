@@ -15,7 +15,7 @@
 /*                                                                   */
 /* ***************************************************************** */
 
-String print_sets_and_ways(struct cache *c)
+char* print_sets_and_ways(struct cache *c)
 {
     if (c->number_of_ways == 1) return("direct-mapped");
     if (c->number_of_ways == c->number_of_cache_entries) return("fully associative");
@@ -32,7 +32,7 @@ String print_sets_and_ways(struct cache *c)
 /*                                                                   */
 /* ***************************************************************** */
 
-String memory_reference_type_name(enum memory_access_type type)
+char* memory_reference_type_name(enum memory_access_type type)
 {
     switch(type)
         {
@@ -49,7 +49,7 @@ String memory_reference_type_name(enum memory_access_type type)
 /*                                                                   */
 /* ***************************************************************** */
 
-String CRP_name(struct cache *c)
+char* CRP_name(struct cache *c)
 {
     switch(c->replacement_policy)
         {

@@ -47,7 +47,7 @@ unsigned int mask_of(int n)
 /*                                                                   */
 /* ***************************************************************** */
 
-Boolean ishex(int c)
+char ishex(int c)
 {
     if (('0' <= c) && (c <= '9')) return(TRUE);
     if (('a' <= c) && (c <= 'f')) return(TRUE);
@@ -77,24 +77,24 @@ int decvalue(int c)
 
 /* MALLOC space for a string and copy it */
 
-String remember_string(const String name)
+char* remember_string(const char* name)
 {
     size_t n;
-    String p;
+    char* p;
 
     if (name == NULL) return(NULL);
 
     /* get memory to remember file name */
     n = strlen(name) + 1;
-    p = CAST(String , malloc(n));
+    p = CAST(char* , malloc(n));
     strcpy(p, name);
     return(p);
 }
 
-String augment_name(const String name, const String plus)
+char* augment_name(const char* name, const char* plus)
 {
     int n = strlen(name) + 1 + strlen(plus) + 1;
-    String p = CAST(String, malloc(n));
+    char* p = CAST(char*, malloc(n));
     sprintf(p, "%s %s", name, plus);
     return(p);
 }
