@@ -10,7 +10,6 @@
 #include "global.h"
 #include "utils.h"        // utility functions
 #include "cds.h"          // Cache Description Structures
-#include "caches.h"       // cache manipulation code
 
 
 struct memory_reference

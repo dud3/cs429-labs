@@ -1,5 +1,4 @@
 #include "global.h"
-#include "caches.h"
 
 void usage(const char* programName) {
     fprintf(stderr,"Usage: %s [-D] cache-descriptions-file  memory-trace-file\n", programName);

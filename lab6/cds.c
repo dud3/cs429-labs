@@ -1,6 +1,5 @@
 #include "global.h"
 #include "cds.h"
-#include "caches.h"
 
 const char* printSetsAndWays(Cache* cache) {
     if (cache->numberOfWays == 1) {
