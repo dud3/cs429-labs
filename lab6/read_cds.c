@@ -180,22 +180,22 @@ void defineKeyValuePair(CacheDescription* cacheDescription, Token* key, Token* v
     {
         if (strcasestr(value->value, "LRU") != 0)
         {
-            cacheDescription->cache->replacement_policy = CRP_LRU;
+            cacheDescription->cache->replacementPolicy = LRU;
             return;
         }
         if (strcasestr(value->value, "LFU") != 0)
         {
-            cacheDescription->cache->replacement_policy = CRP_LFU;
+            cacheDescription->cache->replacementPolicy = LFU;
             return;
         }
         if (strcasestr(value->value, "random") != 0)
         {
-            cacheDescription->cache->replacement_policy = CRP_RANDOM;
+            cacheDescription->cache->replacementPolicy = RANDOM;
             return;
         }
         if (strcasestr(value->value, "FIFO") != 0)
         {
-            cacheDescription->cache->replacement_policy = CRP_FIFO;
+            cacheDescription->cache->replacementPolicy = FIFO;
             return;
         }
     }
@@ -203,7 +203,7 @@ void defineKeyValuePair(CacheDescription* cacheDescription, Token* key, Token* v
     /* look for line size */
     if ((strcasestr(key->value, "decay") != 0) && (strcasestr(key->value, "interval") != 0)) {
         int n = atoi(value->value);
-        cacheDescription->cache->LFU_Decay_Interval = n;
+        cacheDescription->cache->lfuDecayInterval = n;
         return;
     }
     if (strcasestr(key->value, "ways") != 0) {
@@ -257,8 +257,8 @@ CacheDescription* readCacheDescriptionFileEntry(FILE *cacheDescriptionFile) {
     cacheDescription->cache->entries = 1024;
     cacheDescription->cache->numberOfWays = 2;
     cacheDescription->cache->writeBack = 1;
-    cacheDescription->cache->replacement_policy = CRP_FIFO;
-    cacheDescription->cache->LFU_Decay_Interval = 200000;
+    cacheDescription->cache->replacementPolicy = FIFO;
+    cacheDescription->cache->lfuDecayInterval = 200000;
     cacheDescription->cache->cacheLine = 0;
     cacheDescription->cache->victimCache.entries = 0;
 
@@ -284,16 +284,16 @@ CacheDescription* readCacheDescriptionFileEntry(FILE *cacheDescriptionFile) {
 /*                                                                   */
 /* ***************************************************************** */
 
-void readCacheDescriptions(char* CDS_file_name)
+void readCacheDescriptions(char* cacheDescriptionFileName)
 {
     FILE *cacheDescriptionFile;
     CacheDescription*cacheDescription;
 
     /* open input file */
-    cacheDescriptionFile = fopen(CDS_file_name, "r");
+    cacheDescriptionFile = fopen(cacheDescriptionFileName, "r");
     if (cacheDescriptionFile == 0)
     {
-        fprintf (stderr,"Cannot open CDS file %s\n", CDS_file_name);
+        fprintf (stderr,"Cannot open CDS file %s\n", cacheDescriptionFileName);
     }
     while ((cacheDescription = readCacheDescriptionFileEntry(cacheDescriptionFile)) != 0)
     {
