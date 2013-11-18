@@ -182,12 +182,12 @@ void defineKeyValuePair(CDS* cds, Token* key, Token* value) {
         {
             if (strcasestr(value->string, "true") != NULL)
                 {
-                    cds->c->write_back = TRUE;
+                    cds->c->write_back = 1;
                     return;
                 }
             if (strcasestr(value->string, "false") != NULL)
                 {
-                    cds->c->write_back = FALSE;
+                    cds->c->write_back = 0;
                     return;
                 }
         }
@@ -197,12 +197,12 @@ void defineKeyValuePair(CDS* cds, Token* key, Token* value) {
         {
             if (strcasestr(value->string, "true") != NULL)
                 {
-                    cds->c->write_back = FALSE;
+                    cds->c->write_back = 0;
                     return;
                 }
             if (strcasestr(value->string, "false") != NULL)
                 {
-                    cds->c->write_back = TRUE;
+                    cds->c->write_back = 1;
                     return;
                 }
         }
@@ -288,7 +288,7 @@ CDS* Read_CDS_file_entry(FILE *CDS_file) {
     cds->c->cache_line_size = 64;
     cds->c->number_of_cache_entries = 1024;
     cds->c->number_of_ways = 2;
-    cds->c->write_back = TRUE;
+    cds->c->write_back = 1;
     cds->c->replacement_policy = CRP_FIFO;
     cds->c->LFU_Decay_Interval = 200000;
     cds->c->c_line = NULL;

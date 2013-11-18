@@ -15,7 +15,7 @@
 
 struct memory_reference
 {
-    enum memory_access_type  type;
+    enum MemoryAccessType  type;
     int           address;
     unsigned int             length;
 };
@@ -93,7 +93,7 @@ int Read_trace_file_line(FILE *trace_file, memory_reference *reference)
                 {
                 case 'I': /* instruction trace */
                     {
-                        reference->type = MAT_FETCH;
+                        reference->type = FETCH;
                         readReference(trace_file, reference);
                         return('I');
                     }
@@ -101,14 +101,14 @@ int Read_trace_file_line(FILE *trace_file, memory_reference *reference)
                 case 'M': /* read/modify/write -- treat as a store */
                 case 'S': /* store */
                     {
-                        reference->type = MAT_STORE;
+                        reference->type = STORE;
                         readReference(trace_file, reference);
                         return('S');
                     }
 
                 case 'L': /* load */
                     {
-                        reference->type = MAT_LOAD;
+                        reference->type = LOAD;
                         readReference(trace_file, reference);
                         return('L');
                     }
@@ -398,16 +398,16 @@ void simulateReferenceToCacheLine(CDS* cds, memory_reference* reference) {
         }
         if (!found) {
             /* fill in evicted cache line for this new line */
-            cacheEntry->valid = TRUE;
+            cacheEntry->valid = 1;
             cacheEntry->tag = cacheAddress;
-            cacheEntry->dirty = FALSE;
+            cacheEntry->dirty = 0;
             /* read cache line from memory into cache table */
             if (debug) fprintf(debugFile, "%s: Read cache line 0x%08X into entry %d\n", cds->name,  cacheEntry->tag, cacheEntryIndex);
             cds->c->number_miss_reads += 1;
         }
     }
     /* update reference specific info */
-    if (reference->type == MAT_STORE) {
+    if (reference->type == STORE) {
         /* If it's not write-back, then it is write-thru.
            For write-thru, if it's a write, we write to memory. */
         if (!cds->c->write_back) {
@@ -416,7 +416,7 @@ void simulateReferenceToCacheLine(CDS* cds, memory_reference* reference) {
         }
         else {
             /* For write-back, if it's a write, it's dirty. */
-            cacheEntry->dirty = TRUE;
+            cacheEntry->dirty = 1;
         }
     }
     if (!found) {

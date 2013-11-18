@@ -4,13 +4,14 @@
 #include <stdlib.h>
 #include <ctype.h>
 #include <string.h>
-#define TRUE 1
-#define FALSE 0
+
+#define NUMBER_OF_MEMORY_ACCESS_TYPE 3
 
 extern char debug;
-FILE* debugFile;
-/* A memory address is a 32-bit integer */
-
-enum memory_access_type  { MAT_LOAD, MAT_STORE, MAT_FETCH };
-#define NUMBER_OF_MEMORY_ACCESS_TYPE 3
+extern FILE* debugFile;
+enum MemoryAccessType {
+    LOAD,
+    STORE,
+    FETCH
+};
 

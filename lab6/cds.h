@@ -136,6 +136,6 @@ typedef struct CDS CDS;
 /* a linked list of all the cache descriptors */
 struct CDS *CDS_root;
 
-extern char* memory_reference_type_name(enum memory_access_type type);
+extern char* memory_reference_type_name(enum MemoryAccessType type);
 
 #endif

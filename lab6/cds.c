@@ -32,13 +32,13 @@ char* print_sets_and_ways(struct cache *c)
 /*                                                                   */
 /* ***************************************************************** */
 
-char* memory_reference_type_name(enum memory_access_type type)
+char* memory_reference_type_name(enum MemoryAccessType type)
 {
     switch(type)
         {
-        case MAT_FETCH: return("Fetch");
-        case MAT_LOAD:  return("Load");
-        case MAT_STORE: return("Store");
+        case FETCH: return("Fetch");
+        case LOAD:  return("Load");
+        case STORE: return("Store");
         }
     return("invalid");
 }
@@ -121,9 +121,9 @@ void Print_Cache_Statistics_for_one_cds(CDS *cds)
 {
     fprintf(stdout, "      %d addresses (%d %s, %d %s, %d %s)\n",
             cds->number_of_memory_reference,
-            cds->number_of_type[MAT_FETCH], memory_reference_type_name(MAT_FETCH),
-            cds->number_of_type[MAT_LOAD], memory_reference_type_name(MAT_LOAD),
-            cds->number_of_type[MAT_STORE], memory_reference_type_name(MAT_STORE));
+            cds->number_of_type[FETCH], memory_reference_type_name(FETCH),
+            cds->number_of_type[LOAD], memory_reference_type_name(LOAD),
+            cds->number_of_type[STORE], memory_reference_type_name(STORE));
 
     Print_Cache_Statistics_for_one_cache(cds->c);
 

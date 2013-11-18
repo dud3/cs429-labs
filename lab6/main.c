@@ -21,14 +21,14 @@ void scanargs(char* s)
             {
 
             case 'D': /* debug option */
-                debug = TRUE;
+                debug = 1;
                 if (debug)
                     {
                         debugFile = fopen("DEBUG_LOG", "w");
                         if (debugFile == NULL)
                             {
                                 fprintf(stderr, "Cannot open DEBUG_LOG\n");
-                                debug = FALSE;
+                                debug = 0;
                             }
                     }
                 break;

@@ -10,7 +10,6 @@
 #include "global.h"
 #include "utils.h"        // utility functions
 
-
 /* ***************************************************************** */
 /*                                                                   */
 /*                                                                   */
@@ -20,6 +19,7 @@
 /* 1 -> 0; 2 -> 1; ... */
 int which_power(int n)
 {
+    debugFile = 0;
     int i = 0;
     int t = 1;
     while (n > t)
@@ -49,10 +49,10 @@ unsigned int mask_of(int n)
 
 char ishex(int c)
 {
-    if (('0' <= c) && (c <= '9')) return(TRUE);
-    if (('a' <= c) && (c <= 'f')) return(TRUE);
-    if (('A' <= c) && (c <= 'F')) return(TRUE);
-    return(FALSE);
+    if (('0' <= c) && (c <= '9')) return(1);
+    if (('a' <= c) && (c <= 'f')) return(1);
+    if (('A' <= c) && (c <= 'F')) return(1);
+    return(0);
 }
 
 int hexvalue(int c)
