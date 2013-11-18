@@ -26,52 +26,41 @@ const char* memoryAccessTypeName(enum MemoryAccessType type) {
     return "invalid";
 }
 
-const char* cacheReplacementPolicyName(Cache *c) {
-    switch(c->replacement_policy) {
+const char* cacheReplacementPolicyName(Cache* cache, char* buffer) {
+    switch(cache->replacement_policy) {
         case FIFO:
             return "FIFO";
-        case LRU:    return "LRU";
-        case RANDOM: return "RANDOM";
-
-        case LFU:
-            {
-                static char buffer[64];
-                sprintf(buffer, "LFU (decay=%d)", c->LFU_Decay_Interval);
-                return buffer;
-            }
-
-        };
+        case LRU:
+            return "LRU";
+        case RANDOM:
+            return "RANDOM";
+        case LFU: {
+            sprintf(buffer, "LFU (decay=%d)", cache->LFU_Decay_Interval);
+            return buffer;
+        }
+    };
     return "Invalid policy";
 }
 
-
-
-void debug_print_cache(struct cache *c)
-{
-    fprintf(debugFile, "%s: Total number of entries: %d\n", c->name,  c->entries);
-    fprintf(debugFile, "%s: %s\n", c->name,  print_sets_and_ways(c));
-    fprintf(debugFile, "%s: Each cache line is %d bytes\n", c->name,  c->cache_line_size);
-    fprintf(debugFile, "%s: Cache is %s\n", c->name,  c->write_back ? "write-back" : "write-thru");
-    fprintf(debugFile, "%s: With a %s replacement policy\n", c->name, CRP_name(c));
+void debugPrintCache(Cache *cache) {
+    char buffer[1024];
+    fprintf(debugFile, "%s: Total number of entries: %d\n", cache->name,  cache->entries);
+    fprintf(debugFile, "%s: %s\n", cache->name,  printSetsAndWays(cache));
+    fprintf(debugFile, "%s: Each cache line is %d bytes\n", cache->name,  cache->cacheLineSize);
+    fprintf(debugFile, "%s: Cache is %s\n", cache->name,  cache->writeBack ? "write-back" : "write-thru");
+    fprintf(debugFile, "%s: With a %s replacement policy\n", cache->name, cacheReplacementPolicyName(cache, buffer));
 }
 
 
-void debugPrintCds(CDS *cds)
-{
-    debug_print_cache(cds->c);
+void debugPrintCacheDescription(CacheDescription* cacheDescription) {
+    debugPrintCache(cds->cache);
 }
 
-
-/* ***************************************************************** */
-/*                                                                   */
-/*                                                                   */
-/* ***************************************************************** */
-
-int percent(int a, int b)
-{
-    if (b == 0) return 0;
-    int n = (a*100/b);
-    return n;
+int percent(int a, int b) {
+    if (!b) {
+        return 0;
+    }
+    return a * 100 / b;
 }
 
 
@@ -79,7 +68,7 @@ void printCacheStatistics_for_one_cache(struct cache *c)
 {
     fprintf(stdout, "%s: %d entries of lines of %d bytes; %s, %s, %s\n",
             c->name, c->entries, c->cache_line_size,
-            print_sets_and_ways(c),
+            printSetsAndWays(c),
             c->write_back ? "write-back" : "write-thru",
             CRP_name(c));
 
