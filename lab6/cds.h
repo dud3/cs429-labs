@@ -113,8 +113,7 @@ struct cache
 /* ***************************************************************** */
 /* The actual cache description structure */
 
-struct CDS
-{
+struct CDS {
     struct CDS *next;  /* linked list of all the CDS */
 
     String      name;
