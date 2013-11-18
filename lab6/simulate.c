@@ -39,10 +39,10 @@ void readReference(FILE* trace_file, memory_reference* reference) {
        hexadecimal address, skip the comma and get the length */
 
     /* skip any leading blanks */
-    c = skip_blanks(trace_file);
+    c = skipBlanks(trace_file);
     int a = 0;
     while (ishex(c)) {
-        a = (a << 4) | hexvalue(c);
+        a = (a << 4) | hexValue(c);
         c = getc(trace_file);
     }
     if (c != ',') {
@@ -54,7 +54,7 @@ void readReference(FILE* trace_file, memory_reference* reference) {
     int n = 0;
     c = getc(trace_file);
     while (isdigit(c)) {
-        n = n * 10 + decvalue(c);
+        n = n * 10 + decValue(c);
         c = getc(trace_file);
     }
     /* skip to end of line */
@@ -481,7 +481,7 @@ void simulateCaches(char* traceFileName) {
     initCachesForTrace();
     while (Read_trace_file_line(traceFile, &reference) != EOF) {
         CDS* cds = CDS_root;
-        while (cds != NULL) {
+        while (cds != 0) {
             simulateReferenceToMemory(cds, &reference);
             cds = cds->next;
         }

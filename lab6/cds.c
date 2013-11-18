@@ -98,7 +98,7 @@ void printCacheStatistics_for_one_cds(CDS *cds)
 void printCacheStatistics(void)
 {
     CDS *cds = CDS_root;
-    while (cds != NULL)
+    while (cds != 0)
         {
             printCacheStatistics_for_one_cds(cds);
             cds = cds->next;
@@ -121,7 +121,7 @@ void initCache(CDS* cds) {
 
 void initCaches() {
     CDS* cds = CDS_root;
-    while (cds != NULL) {
+    while (cds != 0) {
         initCache(cds);
         cds = cds->next;
     }

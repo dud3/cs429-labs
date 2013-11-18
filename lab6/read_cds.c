@@ -47,7 +47,7 @@ void put_char_in_token_at(Token *t, char c, int i)
             /* need more space */
             t->length = 2 * t->length;
             t->string = (char*) realloc(t->string, t->length);
-            if (t->string == NULL)
+            if (t->string == 0)
                 {
                     fprintf(stderr, "Hell has frozen over!!!\n");
                     exit(-1);
@@ -68,7 +68,7 @@ void get_token(FILE *CDS_file, Token *t)
     put_char_in_token_at(t, '\0', i);
 
     /* skip spacing, look for first character */
-    c = skip_blanks(CDS_file);
+    c = skipBlanks(CDS_file);
     if (c == EOF) return;
 
     while (isalnum(c) || (c == '_'))
@@ -98,7 +98,7 @@ int get_key_value_pair(FILE *CDS_file, Token *key, Token *value)
     int c;
 
     /* skip initial spaces */
-    c = skip_blanks(CDS_file);
+    c = skipBlanks(CDS_file);
     if (c == EOF) return EOF;
     if (c == '}') return EOF;
 
@@ -109,7 +109,7 @@ int get_key_value_pair(FILE *CDS_file, Token *key, Token *value)
     get_token(CDS_file, key);
 
     /* skip spacing, look for "=" */
-    c = skip_blanks(CDS_file);
+    c = skipBlanks(CDS_file);
     if (c == EOF) return EOF;
     if ((c != '=') && (c != ':') && (c != '-'))
         {
@@ -121,7 +121,7 @@ int get_key_value_pair(FILE *CDS_file, Token *key, Token *value)
     get_token(CDS_file, value);
 
     /* skip spacing, look for "," */
-    c = skip_blanks(CDS_file);
+    c = skipBlanks(CDS_file);
     if (c == EOF) return EOF;
     if ((c != ',') && (c != ';') && (c != '}'))
         {
@@ -145,16 +145,16 @@ void defineKeyValuePair(CDS* cds, Token* key, Token* value) {
         fprintf(debugFile, "define %s = %s \n", key->string, value->string);
     }
     /* look for the name */
-    if (strcasestr(key->string, "name") != NULL) {
+    if (strcasestr(key->string, "name") != 0) {
         if (cds->name != 0) {
             free(cds->name);
         }
-        cds->name = remember_string(value->string);
+        cds->name = allocateString(value->string);
         return;
     }
 
     /* look for line size */
-    if ((strcasestr(key->string, "line") != NULL) && (strcasestr(key->string, "size") != NULL))
+    if ((strcasestr(key->string, "line") != 0) && (strcasestr(key->string, "size") != 0))
         {
             int n = atoi(value->string);
             cds->c->cache_line_size = n;
@@ -162,7 +162,7 @@ void defineKeyValuePair(CDS* cds, Token* key, Token* value) {
         }
 
     /* look for number of cache entries */
-    if (strcasestr(key->string, "entries") != NULL)
+    if (strcasestr(key->string, "entries") != 0)
         {
             int n = atoi(value->string);
             cds->c->entries = n;
@@ -170,7 +170,7 @@ void defineKeyValuePair(CDS* cds, Token* key, Token* value) {
         }
 
     /* look for the number of ways */
-    if (strcasestr(key->string, "ways") != NULL)
+    if (strcasestr(key->string, "ways") != 0)
         {
             int n = atoi(value->string);
             cds->c->numberOfWays = n;
@@ -178,14 +178,14 @@ void defineKeyValuePair(CDS* cds, Token* key, Token* value) {
         }
 
     /* look for write-back */
-    if ((strcasestr(key->string, "write") != NULL) && (strcasestr(key->string, "back") != NULL))
+    if ((strcasestr(key->string, "write") != 0) && (strcasestr(key->string, "back") != 0))
         {
-            if (strcasestr(value->string, "true") != NULL)
+            if (strcasestr(value->string, "true") != 0)
                 {
                     cds->c->write_back = 1;
                     return;
                 }
-            if (strcasestr(value->string, "false") != NULL)
+            if (strcasestr(value->string, "false") != 0)
                 {
                     cds->c->write_back = 0;
                     return;
@@ -193,14 +193,14 @@ void defineKeyValuePair(CDS* cds, Token* key, Token* value) {
         }
 
     /* look for write-thru */
-    if ((strcasestr(key->string, "write") != NULL) && (strcasestr(key->string, "thru") != NULL))
+    if ((strcasestr(key->string, "write") != 0) && (strcasestr(key->string, "thru") != 0))
         {
-            if (strcasestr(value->string, "true") != NULL)
+            if (strcasestr(value->string, "true") != 0)
                 {
                     cds->c->write_back = 0;
                     return;
                 }
-            if (strcasestr(value->string, "false") != NULL)
+            if (strcasestr(value->string, "false") != 0)
                 {
                     cds->c->write_back = 1;
                     return;
@@ -208,24 +208,24 @@ void defineKeyValuePair(CDS* cds, Token* key, Token* value) {
         }
 
     /* look for the replacement policy */
-    if ((strcasestr(key->string, "policy") != NULL) || (strcasestr(key->string, "replace") != NULL))
+    if ((strcasestr(key->string, "policy") != 0) || (strcasestr(key->string, "replace") != 0))
         {
-            if (strcasestr(value->string, "LRU") != NULL)
+            if (strcasestr(value->string, "LRU") != 0)
                 {
                     cds->c->replacement_policy = CRP_LRU;
                     return;
                 }
-            if (strcasestr(value->string, "LFU") != NULL)
+            if (strcasestr(value->string, "LFU") != 0)
                 {
                     cds->c->replacement_policy = CRP_LFU;
                     return;
                 }
-            if (strcasestr(value->string, "random") != NULL)
+            if (strcasestr(value->string, "random") != 0)
                 {
                     cds->c->replacement_policy = CRP_RANDOM;
                     return;
                 }
-            if (strcasestr(value->string, "FIFO") != NULL)
+            if (strcasestr(value->string, "FIFO") != 0)
                 {
                     cds->c->replacement_policy = CRP_FIFO;
                     return;
@@ -233,12 +233,12 @@ void defineKeyValuePair(CDS* cds, Token* key, Token* value) {
         }
 
     /* look for line size */
-    if ((strcasestr(key->string, "decay") != NULL) && (strcasestr(key->string, "interval") != NULL)) {
+    if ((strcasestr(key->string, "decay") != 0) && (strcasestr(key->string, "interval") != 0)) {
         int n = atoi(value->string);
         cds->c->LFU_Decay_Interval = n;
         return;
     }
-    if (strcasestr(key->string, "ways") != NULL) {
+    if (strcasestr(key->string, "ways") != 0) {
         int n = atoi(value->string);
         cds->c->numberOfWays = n;
         return;
@@ -261,12 +261,12 @@ void defineKeyValuePair(CDS* cds, Token* key, Token* value) {
 CDS* Read_CDS_file_entry(FILE *CDS_file) {
     int c;
 
-    c = skip_blanks(CDS_file);
+    c = skipBlanks(CDS_file);
     while (c == '#')
         {
-            c = skip_line(CDS_file);
+            c = skipLine(CDS_file);
         }
-    if (c == EOF) return NULL;
+    if (c == EOF) return 0;
 
     /* Syntax for Cache Descriptions:  { key=value, key=value, ... } */
     /* So, we read a key and a value and define the field of the
@@ -275,7 +275,7 @@ CDS* Read_CDS_file_entry(FILE *CDS_file) {
     if (c != '{')
         {
             fprintf(stderr, "Cache description should start with {, not %c\n", c);
-            return NULL;
+            return 0;
         }
 
     /* starting a new cache description.  Get a structure,
@@ -291,7 +291,7 @@ CDS* Read_CDS_file_entry(FILE *CDS_file) {
     cds->c->write_back = 1;
     cds->c->replacement_policy = CRP_FIFO;
     cds->c->LFU_Decay_Interval = 200000;
-    cds->c->c_line = NULL;
+    cds->c->c_line = 0;
     cds->c->victimCache.entries = 0;
 
     Token* key = new_token();
@@ -302,7 +302,7 @@ CDS* Read_CDS_file_entry(FILE *CDS_file) {
     delete_token(key);
     delete_token(value);
 
-    cds->c->name = remember_string(cds->name);
+    cds->c->name = allocateString(cds->name);
 
     if (debug) {
         debugPrintCds(cds);
@@ -323,26 +323,26 @@ void readCacheDescriptions(char* CDS_file_name)
 
     /* open input file */
     CDS_file = fopen(CDS_file_name, "r");
-    if (CDS_file == NULL)
+    if (CDS_file == 0)
         {
             fprintf (stderr,"Cannot open CDS file %s\n", CDS_file_name);
         }
-    while ((cds = Read_CDS_file_entry(CDS_file)) != NULL)
+    while ((cds = Read_CDS_file_entry(CDS_file)) != 0)
         {
             /* we use a linked list for all the cache descriptions,
                but we want to keep the list in the same order tha
                we read them in.  Bummer. */
-            if (CDS_root == NULL)
+            if (CDS_root == 0)
                 {
                     CDS_root = cds;
                 }
             else
                 {
                     CDS *q = CDS_root;
-                    while (q->next != NULL) q = q->next;
+                    while (q->next != 0) q = q->next;
                     q->next = cds;
                 }
-            cds->next = NULL;
+            cds->next = 0;
         }
     fclose(CDS_file);
 }
