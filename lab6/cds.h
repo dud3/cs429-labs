@@ -42,7 +42,7 @@ typedef struct {
     VictimCache victimCache;
 } Cache;
 
-typedef struct {
+typedef struct CacheDescription {
     char* name;
     int numberOfMemoryReference;
     int numberOfType[NUMBER_OF_MEMORY_ACCESS_TYPE];
@@ -51,5 +51,20 @@ typedef struct {
 } CacheDescription;
 
 extern CacheDescription* cacheDescriptionRoot;
+const char* printSetsAndWays(Cache*);
 const char* memoryAccessTypeName(enum MemoryAccessType);
+const char* cacheReplacementPolicyName(Cache*, char*);
+void debugPrintCache(Cache*);
+void debugPrintCacheDescription(CacheDescription*);
+void printCacheStatisticsForCache(Cache*);
+void printCacheStatisticsForCacheDescription(CacheDescription*);
+void printCacheStatistics();
+int countDirtyLines(Cache*);
+void initCacheDescription(CacheDescription*);
+void initCaches();
+void initCacheDescriptionForTrace(CacheDescription*);
+void initCacheseForTrace();
+void deleteCache(Cache*);
+void deleteCacheDescription(CacheDescription*);
+void deleteCaches();
 

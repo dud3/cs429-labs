@@ -488,17 +488,3 @@ void simulateCaches(char* traceFileName) {
     fclose(traceFile);
 }
 
-int countDirtyLines(Cache *c)
-{
-    int n = 0;
-    int i;
-    for (i = 0; i < cache->entries; i++)
-        {
-            if (cache->cacheLine[i].dirty)
-                {
-                    n += 1;
-                    if (debug) fprintf(debugFile, "%s: Cache Line 0x%08X is dirty\n", cache->name, cache->cacheLine[i].tag);
-                }
-        }
-    return n;
-}

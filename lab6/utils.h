@@ -1,6 +1,7 @@
 #pragma once
+#include <stdio.h>
 
-int log2(int);
+int logOfTwo(int);
 int mask(int);
 char isHex(int);
 int hexValue(char);

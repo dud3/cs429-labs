@@ -1,7 +1,7 @@
 #include "utils.h"
 #include "global.h"
 
-int log2(int n) {
+int logOfTwo(int n) {
     int i = 0;
     if (n <= 0) {
         return 0;
@@ -34,7 +34,7 @@ char isHex(int c) {
     return 0;
 }
 
-int hexValue(int c) {
+int hexValue(char c) {
     if (('0' <= c) && (c <= '9')) {
         return c - '0';
     }
@@ -47,7 +47,7 @@ int hexValue(int c) {
     return -1;
 }
 
-int decValue(int c) {
+int decValue(char c) {
     if (('0' <= c) && (c <= '9')) {
         return c - '0';
     }

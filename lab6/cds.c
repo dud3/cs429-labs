@@ -1,6 +1,8 @@
 #include "global.h"
 #include "cds.h"
 
+CacheDescription* cacheDescriptionRoot = 0;
+
 const char* printSetsAndWays(Cache* cache) {
     if (cache->numberOfWays == 1) {
         return "direct-mapped";
@@ -26,7 +28,7 @@ const char* memoryAccessTypeName(enum MemoryAccessType type) {
 }
 
 const char* cacheReplacementPolicyName(Cache* cache, char* buffer) {
-    switch(cache->replacement_policy) {
+    switch(cache->replacementPolicy) {
         case FIFO:
             return "FIFO";
         case LRU:
@@ -34,14 +36,14 @@ const char* cacheReplacementPolicyName(Cache* cache, char* buffer) {
         case RANDOM:
             return "RANDOM";
         case LFU: {
-            sprintf(buffer, "LFU (decay=%d)", cache->LFU_Decay_Interval);
+            sprintf(buffer, "LFU (decay=%d)", cache->lfuDecayInterval);
             return buffer;
         }
     };
     return "Invalid policy";
 }
 
-void debugPrintCache(Cache *cache) {
+void debugPrintCache(Cache* cache) {
     char buffer[1024];
     fprintf(debugFile, "%s: Total number of entries: %d\n", cache->name,  cache->entries);
     fprintf(debugFile, "%s: %s\n", cache->name,  printSetsAndWays(cache));
@@ -63,10 +65,11 @@ int percent(int a, int b) {
 }
 
 void printCacheStatisticsForCache(Cache* cache) {
-    printf("%s: %d entries of lines of %d bytes; %s, %s, %s\n", cache->name, cache->entries, cache->cacheLineSize, printSetsAndWays(cache), cache->writeBack ? "write-back" : "write-thru", cacheReplacementPolicyName(c));
+    char buffer[1024];
+    printf("%s: %d entries of lines of %d bytes; %s, %s, %s\n", cache->name, cache->entries, cache->cacheLineSize, printSetsAndWays(cache), cache->writeBack ? "write-back" : "write-thru", cacheReplacementPolicyName(cache, buffer));
     printf("%s: %d accesses, %d hits (%d%%), %d misses, %d miss reads, %d miss writes\n", cache->name, cache->totalCacheAccess, cache->totalCacheHits, percent(cache->totalCacheHits, cache->totalCacheAccess), cache->totalCacheMisses, cache->totalMissReads, cache->totalMissWrites);
     if (cache->writeBack) {
-        printf("%s: %d dirty cache lines remain\n", cache->name, countDirtyLines(c));
+        printf("%s: %d dirty cache lines remain\n", cache->name, countDirtyLines(cache));
     }
 }
 
@@ -84,7 +87,21 @@ void printCacheStatistics() {
     }
 }
 
-void initCache(CacheDescription* cacheDescription) {
+int countDirtyLines(Cache* cache) {
+    int n = 0;
+    int i;
+    for (i = 0; i < cache->entries; ++i) {
+        if (cache->cacheLine[i].dirty) {
+            ++n;
+            if (debug) {
+                fprintf(debugFile, "%s: Cache Line 0x%08X is dirty\n", cache->name, cache->cacheLine[i].tag);
+            }
+        }
+    }
+    return n;
+}
+
+void initCacheDescription(CacheDescription* cacheDescription) {
     cacheDescription->cache->cacheLine = (CacheLine*) calloc(cacheDescription->cache->entries, sizeof(CacheLine));
     cacheDescription->cache->victimCache.cacheLine = (CacheLine*) calloc(cacheDescription->cache->victimCache.entries, sizeof(CacheLine));
 }
@@ -92,12 +109,12 @@ void initCache(CacheDescription* cacheDescription) {
 void initCaches() {
     CacheDescription* cacheDescription = cacheDescriptionRoot;
     while (cacheDescription) {
-        initCache(cacheDescription);
+        initCacheDescription(cacheDescription);
         cacheDescription = cacheDescription->next;
     }
 }
 
-void initCacheForTrace(CacheDescription* cacheDescription) {
+void initCacheDescriptionForTrace(CacheDescription* cacheDescription) {
     int i;
     cacheDescription->numberOfMemoryReference = 0;
     for (i = 0; i < NUMBER_OF_MEMORY_ACCESS_TYPE; ++i) {
@@ -118,7 +135,7 @@ void initCacheForTrace(CacheDescription* cacheDescription) {
 void initCachesForTrace() {
     CacheDescription* cacheDescription = cacheDescriptionRoot;
     while (cacheDescription) {
-        initCacheForTrace(cacheDescription);
+        initCacheDescriptionForTrace(cacheDescription);
         cacheDescription = cacheDescription->next;
     }
 }
@@ -134,7 +151,7 @@ void deleteCache(Cache* cache) {
 
 void deleteCacheDescription(CacheDescription* cacheDescription) {
     free(cacheDescription->name);
-    deleteCacheLine(cacheDescription->cache);
+    deleteCache(cacheDescription->cache);
     free(cacheDescription);
 }
 
@@ -143,7 +160,7 @@ void deleteCaches() {
     while (cacheDescription != 0) {
         CacheDescription* old = cacheDescription;
         cacheDescription = cacheDescription->next;
-        deleteCache(old);
+        deleteCacheDescription(old);
     }
 }
 
