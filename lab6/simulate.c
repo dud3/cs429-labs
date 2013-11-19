@@ -354,7 +354,6 @@ void simulateCaches(const char* traceFileName) {
         fprintf (stderr,"Cannot open trace file %s\n", traceFileName);
         exit(1);
     }
-    initCacheDescriptionsForTrace();
     while (readTraceFile(traceFile, &reference) != EOF) {
         CacheDescription* cacheDescription = cacheDescriptionRoot;
         while (cacheDescription) {

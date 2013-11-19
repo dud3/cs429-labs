@@ -53,6 +53,7 @@ typedef struct CacheDescription {
 extern CacheDescription* cacheDescriptionRoot;
 const char* cacheReplacementPolicyName(Cache*, char*);
 const char* printSetsAndWays(Cache*);
+void printCacheStatistics();
 void initCacheDescriptions();
 void initCacheDescriptionsForTrace();
 

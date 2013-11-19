@@ -24,8 +24,9 @@ int main(int argc, char** argv) {
     }
     readCacheDescriptions(argv[1]);
     initCacheDescriptions();
+    initCacheDescriptionsForTrace();
     // simulateCaches(argv[1]);
-    // printCacheStatistics();
+    printCacheStatistics();
     deleteCacheDescriptions();
     return 0;
 }
