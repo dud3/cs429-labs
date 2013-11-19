@@ -40,19 +40,14 @@ void readReference(FILE* traceFile, MemoryReference* reference) {
     reference->length = n;
 }
 
-int readTraceFileLine(FILE* traceFile, MemoryReference *reference) {
+int readTraceFile(FILE* traceFile, MemoryReference *reference) {
     int c;
-
     traceLineNumber = 0;
-
     while ((c = getc(traceFile)) != EOF) {
-        /* start the next line */
-        traceLineNumber += 1;
-
-        /* skip any leading blanks */
-        while (isspace(c) && (c != EOF)) c = getc(traceFile);
-
-        /* what is the character ? */
+        ++traceLineNumber;
+        while (isspace(c) && (c != EOF)) {
+            c = getc(traceFile);
+        }
         switch (c) {
             case 'I':
                 reference->type = FETCH;
@@ -68,11 +63,7 @@ int readTraceFileLine(FILE* traceFile, MemoryReference *reference) {
                 readReference(traceFile, reference);
                 return 'L';
         }
-
-        /* apparently not a reference line.  There are a bunch
-           of other lines that valgrind puts out.  They star
-           with  ====, or --, or such.  Skip the entire line. */
-        /* skip to end of line */
+        // Not a reference line, skip
         while ((c != '\n') && (c != EOF)) {
             c = getc(traceFile);
         }
@@ -80,90 +71,49 @@ int readTraceFileLine(FILE* traceFile, MemoryReference *reference) {
     return EOF;
 }
 
-
-/* ***************************************************************** */
-/*                                                                   */
-/*                                                                   */
-/* ***************************************************************** */
-
-/* LFU counts the number of times something is used.  To preven
-   a large number from just sitting there, we cause it to decay
-   over time.  Every "tick" time units, we shift left one bit,
-   so that eventually a count will go to zero if it is not continuing
-   to be used. */
-
-void Check_For_Decay(int time, Cache *c) {
+void checkForDecay(int time, Cache *c) {
     if (cache->replacementPolicy != LFU) {
         return;
     }
     if (!(time % cache->lfuDecayInterval)) {
         int i;
-        if (debug) fprintf(debugFile, "%s: LFU decay for all LFU counters\n", cache->name);
-        for (i = 0; i < cache->entries; i++) {
-            cache->cacheLine[i].replacementData = cache->cacheLine[i].replacementData/2;
+        if (debug) {
+            fprintf(debugFile, "%s: LFU decay for all LFU counters\n", cache->name);
+        }
+        for (i = 0; i < cache->entries; ++i) {
+            cache->cacheLine[i].replacementData >>= 1;
         }
     }
 }
 
-/* ***************************************************************** */
-/*                                                                   */
-/*                                                                   */
-/* ***************************************************************** */
-
-int getBaseCacheAddress(Cache *c, int a) {
-    /* find number of low-order bits to mask off to find beginning cache
-       line address */
-    int number_of_low_order_bits = logOfTwo(cache->cacheLineSize);
-    int low_order_mask = mask_of(number_of_low_order_bits);
-    int cache_address = a & (~low_order_mask);
-    return cache_address;
+int getBaseCacheAddress(Cache* cache, int address) {
+    return address & (~mask(logOfTwo(cache->cacheLineSize)));
 }
 
-int computeSetIndex(Cache *c, int cache_address) {
-    /* shift off low-order offset bits and find bits for
-       indexing into cache table */
-    /* the number of sets is the number of cache entries
-       divided by the number of ways. */
-    int number_of_low_order_bits = logOfTwo(cache->cacheLineSize);
-    int number_of_sets = cache->entries/cache->numberOfWays;
-    int sets_bits = logOfTwo(number_of_sets);
-    int sets_bits_mask = mask_of(sets_bits);
-    int cache_set_index = (cache_address >> number_of_low_order_bits) & sets_bits_mask;
-    int cache_entry_index = cache_set_index * cache->numberOfWays;
-    return cache_entry_index;
+int computeSetIndex(Cache* cache, int address) {
+    return (address >> logOfTwo(cache->cacheLineSize)) & mask(logOfTwo(cache->entries / cache->numberOfWays)) * cache->numberOfWays;
 }
 
-
-/* ***************************************************************** */
-/*                                                                   */
-/*                                                                   */
-/* ***************************************************************** */
-
-/* search in the cache for the particular cache address we want */
-int searchCacheFor(Cache* c, int cache_address) {
-    int cache_entry_index = computeSetIndex(c, cache_address);
-
-    if (debug) fprintf(debugFile, "%s: search cache lines %d to %d for 0x%08X\n",
-            cache->name, cache_entry_index,
-            cache_entry_index+cache->numberOfWays-1, cache_address);
-
-    /* index into cache table and search the number of ways to
-       try to find cache line. */
+int searchCacheFor(Cache* cache, int address) {
+    int cacheEntryIndex = computeSetIndex(c, address);
     int i;
-    for (i = 0; i < cache->numberOfWays; i++) {
-        if (cache->cacheLine[cache_entry_index+i].valid && (cache_address == cache->cacheLine[cache_entry_index+i].tag)) {
-            cache->totalCacheHits += 1;
-            return cache_entry_index+i;
+    if (debug) {
+        fprintf(debugFile, "%s: search cache lines %d to %d for 0x%08X\n", cache->name, cacheEntryIndex, cacheEntryIndex + cache->numberOfWays - 1, address);
+    }
+    for (i = 0; i < cache->numberOfWays; ++i) {
+        if (cache->cacheLine[cacheEntryIndex + i].valid && (address == cache->cacheLine[cacheEntryIndex+i].tag)) {
+            ++cache->totalCacheHits;
+            return cacheEntryIndex + i;
         }
     }
-    cache->totalCacheMisses += 1;
+    ++cache->totalCacheMisses;
     return -1;
 }
 
-int searchVictimCacheFor(VictimCache* victimCache, int cacheAddress) {
+int searchVictimCacheFor(VictimCache* victimCache, int address) {
     int i;
     for (i = 0; i < victimCache->entries; ++i) {
-        if (victimCache->cacheLine[i].valid && cacheAddress == victimCache->cacheLine[i].address) {
+        if (victimCache->cacheLine[i].valid && address == victimCache->cacheLine[i].address) {
             ++victimCache->totalCacheHits;
             return i;
         }
@@ -172,138 +122,136 @@ int searchVictimCacheFor(VictimCache* victimCache, int cacheAddress) {
     return -1;
 }
 
-/* ***************************************************************** */
-/*                                                                   */
-/*                                                                   */
-/* ***************************************************************** */
-
-int findVictim(Cache *c, int cache_address) {
+int findVictimInCache(Cache* cache, int address) {
     int i;
     int victim;
-
-    int first_index = computeSetIndex(c, cache_address);
-    int set_size = cache->numberOfWays;
-    if (debug) fprintf(debugFile, "%s: look for victim in %d lines starting at %d\n", cache->name,  set_size, first_index);
-
-    /* first look to see if any entry is empty */
-    for (i = 0; i < set_size; i++) {
-        if (!(cache->cacheLine[first_index+i].valid)) {
-            victim = first_index+i;
+    int firstIndex = computeSetIndex(cache, address);
+    int setSize = cache->numberOfWays;
+    if (debug) {
+        fprintf(debugFile, "%s: look for victim in %d lines starting at %d\n", cache->name,  setSize, firstIndex);
+    }
+    for (i = 0; i < setSize; ++i) {
+        if (!(cache->cacheLine[firstIndex+i].valid)) {
+            victim = firstIndex + i;
             if (debug) fprintf(debugFile, "%s: found empty cache entry at %d\n", cache->name,  victim);
             return victim;
         }
     }
-
-    /* No empty cache line entry */
-    victim = first_index; /* default victim */
+    // No empty cache
+    victim = firstIndex;
     switch (cache->replacementPolicy) {
-        case FIFO:  /* replacement data is the order we were brought in: 1, 2, 3, ... */
-            /* choose the smallest */
-
-        case LRU:  /* replacement data is the time we were last hit */
-            /* choose the smallest */
-
-        case LFU:  /* replacement data is the number of uses, so
-                      choose the smallest */ {
-                          int min = cache->cacheLine[first_index].replacementData;
-                          if (debug) fprintf(debugFile, "%s: replacement data: [%d, 0x%08X]: %d", cache->name, victim, cache->cacheLine[victim].tag, min);
-                          for (i = 1; i < set_size; i++) {
-                              if (debug) fprintf(debugFile, ", [%d, 0x%08X]: %d", first_index+i, cache->cacheLine[first_index+i].tag, cache->cacheLine[first_index+i].replacementData);
-                              if (cache->cacheLine[first_index+i].replacementData < min) {
-                                  victim = first_index+i;
-                                  min = cache->cacheLine[victim].replacementData;
-                              }
-                          }
-                          if (debug) fprintf(debugFile, "\n");
-                      }
-                      break;
-
+        case FIFO:
+        case LRU:
+        case LFU: {
+            int min = cache->cacheLine[firstIndex].replacementData;
+            if (debug) {
+                fprintf(debugFile, "%s: replacement data: [%d, 0x%08X]: %d", cache->name, victim, cache->cacheLine[victim].tag, min);
+            }
+            for (i = 1; i < setSize; ++i) {
+                if (debug) {
+                    fprintf(debugFile, ", [%d, 0x%08X]: %d", firstIndex+i, cache->cacheLine[firstIndex+i].tag, cache->cacheLine[firstIndex+i].replacementData);
+                }
+                if (cache->cacheLine[firstIndex + i].replacementData < min) {
+                    victim = firstIndex + i;
+                    min = cache->cacheLine[firstIndex + i].replacementData;
+                }
+            }
+            if (debug) {
+                fprintf(debugFile, "\n");
+            }
+            break;
+        }
         case RANDOM:
-                      victim = first_index + (random() % set_size);
-                      break;
+            victim = firstIndex + (random() % setSize);
+            break;
     }
-
-    if (debug) fprintf(debugFile, "%s: found victim in entry %d\n", cache->name,  victim);
+    if (debug) {
+        fprintf(debugFile, "%s: found victim in entry %d\n", cache->name,  victim);
+    }
     return victim;
 }
 
-
-void evictDirtyLine(Cache *c, CacheLine *victim_line) {
-    if (debug) fprintf(debugFile, "%s: Write dirty victim 0x%08X\n",
-            cache->name,  victim_line->tag);
-    cache->totalMissWrites += 1;
+int findVictimInVictimCache(VictimCache* victimCache) {
+    int i;
+    int victim;
+    int min;
+    for (i = 0; i < victimCache->entries; ++i) {
+        if (!(victimCache_>cacheLine[i].valid)) {
+            return i;
+        }
+    }
+    // No empty cache
+    victim = 0;
+    min = victimCache->cacheLine[0].replacementData;
+    for (i = 1; i < victimCache->entries; ++i) {
+        if (victimCache->cacheLine[i].replacementData < min) {
+            victim = i;
+            min = victimCache->cacheLine[i].replacementData;
+        }
+    }
+    return victim;
 }
 
-
-void setReplacementData(int time, Cache *c, CacheLine *cache_entry) {
+void setReplacementData(int time, Cache* cache, CacheLine* cacheEntry) {
     switch (cache->replacementPolicy) {
-        case FIFO:  /* replacement data is the order we were brought in: 1, 2, 3, ... */
-            cache_entry->replacementData = time;
+        case FIFO:
+            cacheEntry->replacementData = time;
             break;
-
-        case LRU:  /* replacement data is the time we were last hit */
-            cache_entry->replacementData = time;
+        case LRU:
+            cacheEntry->replacementData = time;
             break;
-
-        case LFU:  /* replacement data is a count; starts at zero */
-            cache_entry->replacement_data = 0;
-            Check_For_Decay(time, c);
-
+        case LFU:
+            cacheEntry->replacement_data = 0;
+            checkForDecay(time, cache);
         case RANDOM:
             break;
     }
 }
 
-void updateReplacementData(int time, Cache *c, CacheLine *cache_entry) {
+void updateReplacementData(int time, Cache* cache, CacheLine* cacheEntry) {
     switch (cache->replacementPolicy) {
-        case FIFO:  /* replacement data is the order we were brought in: 1, 2, 3, ... */
+        case FIFO:
             break;
-
-        case LRU:  /* replacement data is the time we were last hit */
-            cache_entry->replacementData = time;
+        case LRU:
+            cacheEntry->replacementData = time;
             break;
-
-        case LFU:  /* replacement data is the count of the number of uses */
-            cache_entry->replacementData += 1;
-            Check_For_Decay(time, c);
-
+        case LFU:
+            cacheEntry->replacementData += 1;
+            checkForDecay(time, c);
         case RANDOM:
             break;
     }
 }
 
+// TODO Delete
+// void swapCacheLines(CacheLine *a, CacheLine *b) {
+//     int t = a->tag;
+//     a->tag = b->tag;
+//     b->tag = t;
+//     t = a->dirty;
+//     a->dirty = b->dirty;
+//     b->dirty = t;
+// }
 
-/* ***************************************************************** */
-/*                                                                   */
-/*                                                                   */
-/* ***************************************************************** */
-
-#define swap1(a,b) { int t = a; a = b; b = t; }
-
-void swapCacheLines(CacheLine *a, CacheLine *b) {
-    swap1(a->tag, b->tag);
-    swap1(a->dirty, b->dirty);
-}
-
-
-void evictFromCache(CacheDescription* cacheDescription, CacheLine* victim_line, int cache_address) {
-    /* if victim is dirty, note that this dirty line is being evicted */
-    if (victim_line->dirty) {
-        evictDirtyLine(cacheDescription->c, victim_line);
+void evictFromCache(CacheDescription* cacheDescription, CacheLine* victimLine, int address) {
+    int victim;
+    if (victimLine->dirty) {
+        if (debug) {
+            fprintf(debugFile, "%s: Write dirty victim 0x%08X\n", cacheDescription->cache->name,  victimLine->tag);
+        }
+        ++cacheDescription->cache->totalMissWrites;
+    }
+    victim = findVictimInVictimCache(&cacheDescription->cache->victimCache);
+    if (cacheDescription->cache->victimCache.cacheLine[victim].dirty) {
+        ++cacheDescription->cache->victimCache.totalMissWrites;
     }
 }
-
-
-/* ***************************************************************** */
-/*                                                                   */
-/*                                                                   */
-/* ***************************************************************** */
 
 void simulateReferenceToCacheLine(CacheDescription* cacheDescription, MemoryReference* reference) {
     char found = 0;
     int cacheEntryIndex;
-    CacheLine* cacheEntry = 0;
     int cacheAddress;
+    CacheLine* cacheEntry = 0;
     if (debug) {
         fprintf(debugFile, "%s: %s Reference 0x%08X of length %d\n", cacheDescription->name, memoryAccessTypeName(reference->type), reference->address, reference->length);
     }
@@ -320,13 +268,14 @@ void simulateReferenceToCacheLine(CacheDescription* cacheDescription, MemoryRefe
         // Go into victim cache
         ++cacheDescription->cache->victimCache.totalCacheAccess;
         if (0 <= (cacheEntryIndex = searchVictimCacheFor(&cacheDescription->cache->victimCache, cacheAddress))) { // Found in victim cache
-            // cacheEntry = &cacheDescription->cache->victimCache.cacheLine[cacheEntryIndex];
+            int victim = findVictimInCache(cacheDescription->cache, cacheAddress);
+            cacheEntry = &cacheDescription->cache->victimCache.cacheLine[cacheEntryIndex];
         } else {
         }
         /* Did not find it. */
         found = 0;
         /* Choose a victim from the set */
-        cacheEntryIndex = findVictim(cacheDescription->c, cacheAddress);
+        cacheEntryIndex = findVictimInCache(cacheDescription->cache, cacheAddress);
         cacheEntry = &(cacheDescription->cache->cacheLine[cacheEntryIndex]);
         if (debug) {
             fprintf(debugFile, "%s: Pick victim %d to replace\n", cacheDescription->name,  cacheEntryIndex);
@@ -364,12 +313,6 @@ void simulateReferenceToCacheLine(CacheDescription* cacheDescription, MemoryRefe
     }
 }
 
-
-/* ***************************************************************** */
-/*                                                                   */
-/*                                                                   */
-/* ***************************************************************** */
-
 void simulateReferenceToMemory(CacheDescription* cacheDescription, MemoryReference* reference) {
     cacheDescription->numberOfMemoryReference += 1;
     cacheDescription->numberOfType[reference->type] += 1;
@@ -404,7 +347,7 @@ void simulateCaches(const char* traceFileName) {
         exit(1);
     }
     initCachesForTrace();
-    while (readTraceFileLine(traceFile, &reference) != EOF) {
+    while (readTraceFile(traceFile, &reference) != EOF) {
         CacheDescription* cacheDescription = cacheDescriptionRoot;
         while (cacheDescription) {
             simulateReferenceToMemory(cacheDescription, &reference);
