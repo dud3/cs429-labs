@@ -10,22 +10,29 @@ void usage(const char* programName) {
 }
 
 int main(int argc, char** argv) {
+    char* descriptionsFileName;
+    char* traceFileName;
     if (!(argc == 3) && !(argc == 4 && !strcmp(argv[1], "-D"))) {
         usage(argv[0]);
         exit(-1);
     }
-    if (argc == 4) {
+    if (argc == 3) {
+        descriptionsFileName = argv[1];
+        traceFileName = argv[2];
+    } else if (argc == 4) {
         debug = 1;
         debugFile = fopen("DEBUG_LOG", "w");
         if (!debugFile) {
             fprintf(stderr, "Cannot open DEBUG_LOG\n");
             debug = 0;
         }
+        descriptionsFileName = argv[2];
+        traceFileName = argv[3];
     }
-    readCacheDescriptions(argv[1]);
+    readCacheDescriptions(descriptionsFileName);
     initCacheDescriptions();
     initCacheDescriptionsForTrace();
-    // simulateCaches(argv[1]);
+    simulateCaches(traceFileName);
     printCacheStatistics();
     deleteCacheDescriptions();
     return 0;

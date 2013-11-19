@@ -67,14 +67,6 @@ char* allocateString(const char* name) {
     return p;
 }
 
-// TODO delete
-// char* augment_name(const char* name, const char* plus) {
-//     int n = strlen(name) + 1 + strlen(plus) + 1;
-//     char* p = (char*) malloc(n);
-//     sprintf(p, "%s %s", name, plus);
-//     return p;
-// }
-
 int skipBlanks(FILE* file) {
     int c;
     while (((c = getc(file)) != EOF) && isspace(c)) {
