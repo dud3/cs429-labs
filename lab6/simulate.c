@@ -203,6 +203,7 @@ void setReplacementData(int time, Cache* cache, CacheLine* cacheEntry) {
             break;
         case LFU:
             cacheEntry->replacementData = 0;
+            // TODO check for decay separately?
             checkForDecay(time, cache);
         case RANDOM:
             break;
@@ -249,8 +250,8 @@ void swapCacheLines(CacheLine *a, CacheLine *b) {
 // }
 
 void simulateReferenceToCacheLine(CacheDescription* cacheDescription, MemoryReference* reference) {
-    char found = 0;
     int cacheEntryIndex;
+    int victim;
     CacheLine* cacheEntry = 0;
     if (debug) {
         fprintf(debugFile, "%s: %s Reference 0x%08X of length %d\n", cacheDescription->name, memoryAccessTypeName(reference->type), reference->address, reference->length);
@@ -259,31 +260,30 @@ void simulateReferenceToCacheLine(CacheDescription* cacheDescription, MemoryRefe
     cacheEntryIndex = searchCacheFor(cacheDescription->cache, reference->address); // Find in cache
     if (0 <= cacheEntryIndex) { // Found
         ++cacheDescription->cache->totalCacheHits;
-        found = 1;
         if (debug) {
             fprintf(debugFile, "%s: Found address 0x%08X in cache line %d\n", cacheDescription->name, reference->address, cacheEntryIndex);
         }
         cacheEntry = &cacheDescription->cache->cacheLine[cacheEntryIndex];
-        setReplacementData(cacheDescription->numberOfMemoryReference, cacheDescription->cache, cacheEntry);
+        updateReplacementData(cacheDescription->numberOfMemoryReference, cacheDescription->cache, cacheEntry);
     } else { // Not found
-        found = 0;
+        // TODO consider write-thru
         ++cacheDescription->cache->totalCacheMisses;
         ++cacheDescription->cache->victimCache.totalCacheAccess;
-        cacheEntryIndex = searchVictimCacheFor(cacheDescription->cache, reference->address); // Go into victim cache
-        if (0 <= cacheEntryIndex) { // Found in victim cache
-            int victim;
+        victim = searchVictimCacheFor(cacheDescription->cache, reference->address); // Go into victim cache
+        if (0 <= victim) { // Found in victim cache
             ++cacheDescription->cache->victimCache.totalCacheHits;
-            victim = findVictimInCache(cacheDescription->cache, reference->address);
-            swapCacheLines(&cacheDescription->cache->cacheLine[victim], &cacheDescription->cache->victimCache.cacheLine[cacheEntryIndex]);
-            cacheDescription->cache->victimCache.cacheLine[cacheEntryIndex].replacementData = cacheDescription->numberOfMemoryReference;
-            // TODO cacheEntry = &cacheDescription->cache->victimCache.cacheLine[cacheEntryIndex];
+            cacheEntryIndex = findVictimInCache(cacheDescription->cache, reference->address);
+            if (cacheDescription->cache->cacheLine[cacheEntryIndex].valid && cacheDescription->cache->cacheLine[cacheEntryIndex].dirty) {
+                ++cacheDescription->cache->totalMissWrites;
+            }
+            swapCacheLines(&cacheDescription->cache->cacheLine[cacheEntryIndex], &cacheDescription->cache->victimCache.cacheLine[victim]);
+            cacheDescription->cache->victimCache.cacheLine[victim].replacementData = cacheDescription->numberOfMemoryReference;
+            cacheEntry = &cacheDescription->cache->cacheLine[cacheEntryIndex];
         } else { // Not found
-            int victim;
             ++cacheDescription->cache->totalMissReads;
             ++cacheDescription->cache->victimCache.totalCacheMisses;
             ++cacheDescription->cache->victimCache.totalMissReads;
             cacheEntryIndex = findVictimInCache(cacheDescription->cache, reference->address);
-            cacheEntry = &cacheDescription->cache->cacheLine[cacheEntryIndex];
             if (debug) {
                 fprintf(debugFile, "%s: Pick victim %d to replace\n", cacheDescription->name,  cacheEntryIndex);
             }
@@ -291,19 +291,20 @@ void simulateReferenceToCacheLine(CacheDescription* cacheDescription, MemoryRefe
             if (cacheDescription->cache->victimCache.cacheLine[victim].valid && cacheDescription->cache->victimCache.cacheLine[victim].dirty) {
                 ++cacheDescription->cache->victimCache.totalMissWrites;
             }
+            swapCacheLines(&cacheDescription->cache->cacheLine[cacheEntryIndex], &cacheDescription->cache->victimCache.cacheLine[victim]);
+            cacheEntry = &cacheDescription->cache->cacheLine[cacheEntryIndex];
+            cacheEntry->tag = getBaseCacheAddress(cacheDescription->cache, reference->address);
+            cacheEntry->valid = 1;
+            cacheEntry->dirty = 0;
+            if (debug) {
+                fprintf(debugFile, "%s: Read cache line 0x%08X into entry %d\n", cacheDescription->name,  cacheEntry->tag, cacheEntryIndex);
+            }
         }
+        setReplacementData(cacheDescription->numberOfMemoryReference, cacheDescription->cache, cacheEntry);
     }
-//         if (!found) {
-//             /* fill in evicted cache line for this new line */
-//             cacheEntry->valid = 1;
-//             cacheEntry->tag = baseCacheAddress;
-//             cacheEntry->dirty = 0;
-//             /* read cache line from memory into cache table */
-//             if (debug) fprintf(debugFile, "%s: Read cache line 0x%08X into entry %d\n", cacheDescription->name,  cacheEntry->tag, cacheEntryIndex);
-//             cacheDescription->cache->totalMissReads += 1;
-//         }
-//     }
-//     /* update reference specific info */
+    if (reference->type == STORE) {
+        cacheEntry->dirty = 1;
+    }
 //     if (reference->type == STORE) {
 //         /* If it's not write-back, then it is write-thru.
 //            For write-thru, if it's a write, we write to memory. */
@@ -315,15 +316,11 @@ void simulateReferenceToCacheLine(CacheDescription* cacheDescription, MemoryRefe
 //             cacheEntry->dirty = 1;
 //         }
 //     }
-//     if (!found) {
-//     } else {
-//         updateReplacementData(cacheDescription->numberOfMemoryReference, cacheDescription->c, cacheEntry);
-//     }
 }
 
 void simulateReferenceToMemory(CacheDescription* cacheDescription, MemoryReference* reference) {
-    cacheDescription->numberOfMemoryReference += 1;
-    cacheDescription->numberOfType[reference->type] += 1;
+    ++cacheDescription->numberOfMemoryReference;
+    ++cacheDescription->numberOfType[reference->type];
     // Check if the entire reference fits into just one cache line
     if (getBaseCacheAddress(cacheDescription->cache, reference->address) == getBaseCacheAddress(cacheDescription->cache, reference->address + reference->length -1)) {
         simulateReferenceToCacheLine(cacheDescription, reference);
