@@ -4,6 +4,7 @@
 #include "cds.h"
 #include <ctype.h>
 #include <stdlib.h>
+#include <string.h>
 
 typedef struct {
     int address;
@@ -116,7 +117,7 @@ int searchVictimCacheFor(Cache* cache, int address) {
     int i;
     address = getBaseCacheAddress(cache, address);
     for (i = 0; i < cache->victimCache.entries; ++i) {
-        if (cache->victimCache.cacheLine[i].valid && address == cache->victimCache.cacheLine[i].tag) {
+        if (cache->victimCache.cacheLine[i].valid && (address == cache->victimCache.cacheLine[i].tag)) {
             return i;
         }
     }
@@ -126,15 +127,18 @@ int searchVictimCacheFor(Cache* cache, int address) {
 int findVictimInCache(Cache* cache, int address) {
     int i;
     int victim;
+    int min;
     int firstIndex = computeSetIndex(cache, address);
     int setSize = cache->numberOfWays;
     if (debug) {
         fprintf(debugFile, "%s: look for victim in %d lines starting at %d\n", cache->name,  setSize, firstIndex);
     }
     for (i = 0; i < setSize; ++i) {
-        if (!cache->cacheLine[firstIndex+i].valid) {
+        if (!cache->cacheLine[firstIndex + i].valid) {
             victim = firstIndex + i;
-            if (debug) fprintf(debugFile, "%s: found empty cache entry at %d\n", cache->name,  victim);
+            if (debug) {
+                fprintf(debugFile, "%s: found empty cache entry at %d\n", cache->name,  victim);
+            }
             return victim;
         }
     }
@@ -143,8 +147,8 @@ int findVictimInCache(Cache* cache, int address) {
     switch (cache->replacementPolicy) {
         case FIFO:
         case LRU:
-        case LFU: {
-            int min = cache->cacheLine[firstIndex].replacementData;
+        case LFU:
+            min = cache->cacheLine[firstIndex].replacementData;
             if (debug) {
                 fprintf(debugFile, "%s: replacement data: [%d, 0x%08X]: %d", cache->name, victim, cache->cacheLine[victim].tag, min);
             }
@@ -161,7 +165,6 @@ int findVictimInCache(Cache* cache, int address) {
                 fprintf(debugFile, "\n");
             }
             break;
-        }
         case RANDOM:
             victim = firstIndex + (random() % setSize);
             break;
@@ -203,8 +206,6 @@ void setReplacementData(int time, Cache* cache, CacheLine* cacheEntry) {
             break;
         case LFU:
             cacheEntry->replacementData = 0;
-            // TODO check for decay separately?
-            checkForDecay(time, cache);
         case RANDOM:
             break;
     }
@@ -219,88 +220,89 @@ void updateReplacementData(int time, Cache* cache, CacheLine* cacheEntry) {
             break;
         case LFU:
             cacheEntry->replacementData += 1;
-            checkForDecay(time, cache);
         case RANDOM:
             break;
     }
 }
 
-void swapCacheLines(CacheLine *a, CacheLine *b) {
-    int t = a->tag;
-    a->tag = b->tag;
-    b->tag = t;
-    t = a->dirty;
-    a->dirty = b->dirty;
-    b->dirty = t;
+char cacheFull(Cache* cache) {
+    int i;
+    for (i = 0; i < cache->entries; ++i) {
+        if (!cache->cacheLine[i].valid) {
+            return 0;
+        }
+    }
+    return 1;
 }
 
-// TODO
-// void evictFromCache(CacheDescription* cacheDescription, CacheLine* victimLine) {
-//     int victim;
-//     if (victimLine->dirty) {
-//         if (debug) {
-//             fprintf(debugFile, "%s: Write dirty victim 0x%08X\n", cacheDescription->cache->name,  victimLine->tag);
-//         }
-//         ++cacheDescription->cache->totalMissWrites;
-//     }
-//     victim = findVictimInVictimCache(&cacheDescription->cache->victimCache);
-//     if (cacheDescription->cache->victimCache.cacheLine[victim].dirty) {
-//         ++cacheDescription->cache->victimCache.totalMissWrites;
-//     }
-// }
+void swapCacheLines(CacheLine* a, CacheLine* b) {
+    CacheLine tmp;
+    memcpy(&tmp, a, sizeof(CacheLine));
+    memcpy(a, b, sizeof(CacheLine));
+    memcpy(b, &tmp, sizeof(CacheLine));
+}
 
 void simulateReferenceToCacheLine(CacheDescription* cacheDescription, MemoryReference* reference) {
     int cacheEntryIndex;
     int victim;
     CacheLine* cacheEntry = 0;
+    Cache* cache = cacheDescription->cache;
     if (debug) {
         fprintf(debugFile, "%s: %s Reference 0x%08X of length %d\n", cacheDescription->name, memoryAccessTypeName(reference->type), reference->address, reference->length);
     }
-    ++cacheDescription->cache->totalCacheAccess;
-    cacheEntryIndex = searchCacheFor(cacheDescription->cache, reference->address); // Find in cache
+    ++cache->totalCacheAccess;
+    cacheEntryIndex = searchCacheFor(cache, reference->address); // Find in cache
     if (0 <= cacheEntryIndex) { // Found
-        ++cacheDescription->cache->totalCacheHits;
+        ++cache->totalCacheHits;
         if (debug) {
             fprintf(debugFile, "%s: Found address 0x%08X in cache line %d\n", cacheDescription->name, reference->address, cacheEntryIndex);
         }
-        cacheEntry = &cacheDescription->cache->cacheLine[cacheEntryIndex];
-        updateReplacementData(cacheDescription->numberOfMemoryReference, cacheDescription->cache, cacheEntry);
+        cacheEntry = &cache->cacheLine[cacheEntryIndex];
+        updateReplacementData(cacheDescription->numberOfMemoryReference, cache, cacheEntry);
     } else { // Not found
         // TODO consider write-thru
-        ++cacheDescription->cache->totalCacheMisses;
-        ++cacheDescription->cache->victimCache.totalCacheAccess;
-        victim = searchVictimCacheFor(cacheDescription->cache, reference->address); // Go into victim cache
+        ++cache->totalCacheMisses;
+        if (!cacheFull(cache)) {
+            victim = -1;
+        } else {
+            ++cache->victimCache.totalCacheAccess;
+            victim = searchVictimCacheFor(cache, reference->address); // Go into victim cache
+        }
         if (0 <= victim) { // Found in victim cache
-            ++cacheDescription->cache->victimCache.totalCacheHits;
-            cacheEntryIndex = findVictimInCache(cacheDescription->cache, reference->address);
-            if (cacheDescription->cache->cacheLine[cacheEntryIndex].valid && cacheDescription->cache->cacheLine[cacheEntryIndex].dirty) {
-                ++cacheDescription->cache->totalMissWrites;
+            ++cache->victimCache.totalCacheHits;
+            cacheEntryIndex = findVictimInCache(cache, reference->address);
+            if (cache->cacheLine[cacheEntryIndex].valid && cache->cacheLine[cacheEntryIndex].dirty) {
+                ++cache->totalMissWrites;
             }
-            swapCacheLines(&cacheDescription->cache->cacheLine[cacheEntryIndex], &cacheDescription->cache->victimCache.cacheLine[victim]);
-            cacheDescription->cache->victimCache.cacheLine[victim].replacementData = cacheDescription->numberOfMemoryReference;
-            cacheEntry = &cacheDescription->cache->cacheLine[cacheEntryIndex];
+            swapCacheLines(&cache->cacheLine[cacheEntryIndex], &cache->victimCache.cacheLine[victim]);
+            cache->victimCache.cacheLine[victim].replacementData = cacheDescription->numberOfMemoryReference;
+            cacheEntry = &cache->cacheLine[cacheEntryIndex];
         } else { // Not found
-            ++cacheDescription->cache->totalMissReads;
-            ++cacheDescription->cache->victimCache.totalCacheMisses;
-            ++cacheDescription->cache->victimCache.totalMissReads;
-            cacheEntryIndex = findVictimInCache(cacheDescription->cache, reference->address);
+            ++cache->totalMissReads;
+            ++cache->victimCache.totalCacheMisses;
+            ++cache->victimCache.totalMissReads;
+            cacheEntryIndex = findVictimInCache(cache, reference->address);
             if (debug) {
                 fprintf(debugFile, "%s: Pick victim %d to replace\n", cacheDescription->name,  cacheEntryIndex);
             }
-            victim = findVictimInVictimCache(&cacheDescription->cache->victimCache);
-            if (cacheDescription->cache->victimCache.cacheLine[victim].valid && cacheDescription->cache->victimCache.cacheLine[victim].dirty) {
-                ++cacheDescription->cache->victimCache.totalMissWrites;
+            victim = findVictimInVictimCache(&cache->victimCache);
+            if (cache->victimCache.cacheLine[victim].valid && cache->victimCache.cacheLine[victim].dirty) {
+                ++cache->victimCache.totalMissWrites;
             }
-            swapCacheLines(&cacheDescription->cache->cacheLine[cacheEntryIndex], &cacheDescription->cache->victimCache.cacheLine[victim]);
-            cacheEntry = &cacheDescription->cache->cacheLine[cacheEntryIndex];
-            cacheEntry->tag = getBaseCacheAddress(cacheDescription->cache, reference->address);
+            swapCacheLines(&cache->cacheLine[cacheEntryIndex], &cache->victimCache.cacheLine[victim]);
+            cache->victimCache.cacheLine[victim].replacementData = cacheDescription->numberOfMemoryReference;
+            cacheEntry = &cache->cacheLine[cacheEntryIndex];
+            cacheEntry->tag = getBaseCacheAddress(cache, reference->address);
             cacheEntry->valid = 1;
             cacheEntry->dirty = 0;
             if (debug) {
                 fprintf(debugFile, "%s: Read cache line 0x%08X into entry %d\n", cacheDescription->name,  cacheEntry->tag, cacheEntryIndex);
             }
         }
-        setReplacementData(cacheDescription->numberOfMemoryReference, cacheDescription->cache, cacheEntry);
+        setReplacementData(cacheDescription->numberOfMemoryReference, cache, cacheEntry);
+    }
+    if (cache->replacementPolicy == LFU) {
+        checkForDecay(cacheDescription->numberOfMemoryReference, cache);
     }
     if (reference->type == STORE) {
         cacheEntry->dirty = 1;
