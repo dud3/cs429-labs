@@ -23,7 +23,7 @@ int main(int argc, char** argv) {
         }
     }
     readCacheDescriptions(argv[1]);
-    initCaches();
+    initCacheDescriptions();
     // simulateCaches(argv[1]);
     // printCacheStatistics();
     deleteCacheDescriptions();

@@ -9,6 +9,7 @@ enum MemoryAccessType {
     STORE,
     FETCH
 };
+
 int logOfTwo(int);
 int mask(int);
 char isHex(int);

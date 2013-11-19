@@ -9,11 +9,10 @@ enum CacheReplacementPolicy {
 };
 
 typedef struct {
-    char valid;
-    char dirty;
-    // TODO char* actualData;
     int tag;
     int replacementData;
+    char valid;
+    char dirty;
 } CacheLine;
 
 typedef struct {
@@ -52,9 +51,8 @@ typedef struct CacheDescription {
 } CacheDescription;
 
 extern CacheDescription* cacheDescriptionRoot;
-const char* printSetsAndWays(Cache*);
 const char* cacheReplacementPolicyName(Cache*, char*);
-int countDirtyLines(Cache*);
-void initCaches();
-void initCachesForTrace();
+const char* printSetsAndWays(Cache*);
+void initCacheDescriptions();
+void initCacheDescriptionsForTrace();
 

@@ -9,7 +9,6 @@
 
 #define MIN_TOKEN_SIZE 128
 
-// TODO Hide implementation in .h files
 typedef struct {
     int length;
     char* value;
@@ -165,22 +164,6 @@ void defineKeyValuePair(CacheDescription* cacheDescription, Token* key, Token* v
         return;
     }
     fprintf(stderr, "don't understand %s = %s\n",key->value, value->value);
-}
-
-const char* cacheReplacementPolicyName(Cache* cache, char* buffer) {
-    switch(cache->replacementPolicy) {
-        case FIFO:
-            return "FIFO";
-        case LRU:
-            return "LRU";
-        case RANDOM:
-            return "RANDOM";
-        case LFU: {
-            sprintf(buffer, "LFU (decay=%d)", cache->lfuDecayInterval);
-            return buffer;
-        }
-    };
-    return "Invalid policy";
 }
 
 void debugPrintCacheDescription(CacheDescription* cacheDescription) {

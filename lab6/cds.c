@@ -1,8 +1,25 @@
-#include "utils.h"
 #include "cds.h"
+#include "read_cds.h"
+#include "utils.h"
 #include <stdlib.h>
 
 CacheDescription* cacheDescriptionRoot = 0;
+
+const char* cacheReplacementPolicyName(Cache* cache, char* buffer) {
+    switch(cache->replacementPolicy) {
+        case FIFO:
+            return "FIFO";
+        case LRU:
+            return "LRU";
+        case RANDOM:
+            return "RANDOM";
+        case LFU: {
+            sprintf(buffer, "LFU (decay=%d)", cache->lfuDecayInterval);
+            return buffer;
+        }
+    };
+    return "Invalid policy";
+}
 
 const char* printSetsAndWays(Cache* cache) {
     if (cache->numberOfWays == 1) {
@@ -21,6 +38,20 @@ int percent(int a, int b) {
         return 0;
     }
     return a * 100 / b;
+}
+
+int countDirtyLines(Cache* cache) {
+    int n = 0;
+    int i;
+    for (i = 0; i < cache->entries; ++i) {
+        if (cache->cacheLine[i].dirty) {
+            ++n;
+            if (debug) {
+                fprintf(debugFile, "%s: Cache Line 0x%08X is dirty\n", cache->name, cache->cacheLine[i].tag);
+            }
+        }
+    }
+    return n;
 }
 
 void printCacheStatisticsForCache(Cache* cache) {
@@ -46,26 +77,12 @@ void printCacheStatistics() {
     }
 }
 
-int countDirtyLines(Cache* cache) {
-    int n = 0;
-    int i;
-    for (i = 0; i < cache->entries; ++i) {
-        if (cache->cacheLine[i].dirty) {
-            ++n;
-            if (debug) {
-                fprintf(debugFile, "%s: Cache Line 0x%08X is dirty\n", cache->name, cache->cacheLine[i].tag);
-            }
-        }
-    }
-    return n;
-}
-
 void initCacheDescription(CacheDescription* cacheDescription) {
     cacheDescription->cache->cacheLine = (CacheLine*) calloc(cacheDescription->cache->entries, sizeof(CacheLine));
     cacheDescription->cache->victimCache.cacheLine = (CacheLine*) calloc(cacheDescription->cache->victimCache.entries, sizeof(CacheLine));
 }
 
-void initCaches() {
+void initCacheDescriptions() {
     CacheDescription* cacheDescription = cacheDescriptionRoot;
     while (cacheDescription) {
         initCacheDescription(cacheDescription);
@@ -91,7 +108,7 @@ void initCacheDescriptionForTrace(CacheDescription* cacheDescription) {
     cacheDescription->cache->victimCache.totalMissWrites = 0;
 }
 
-void initCachesForTrace() {
+void initCacheDescriptionsForTrace() {
     CacheDescription* cacheDescription = cacheDescriptionRoot;
     while (cacheDescription) {
         initCacheDescriptionForTrace(cacheDescription);
