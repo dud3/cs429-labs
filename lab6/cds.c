@@ -40,7 +40,7 @@ int percent(int a, int b) {
     return a * 100 / b;
 }
 
-int countDirtyLines(Cache* cache) {
+int countDirtyLinesForCache(Cache* cache) {
     int n = 0;
     int i;
     for (i = 0; i < cache->entries; ++i) {
@@ -54,18 +54,41 @@ int countDirtyLines(Cache* cache) {
     return n;
 }
 
+int countDirtyLinesForVictimCache(VictimCache* victimCache) {
+    int n = 0;
+    int i;
+    for (i = 0; i < victimCache->entries; ++i) {
+        if (victimCache->cacheLine[i].dirty) {
+            ++n;
+        }
+    }
+    // TODO Add debugging code for victimcache
+    return n;
+}
+
 void printCacheStatisticsForCache(Cache* cache) {
     char buffer[1024];
-    printf("%s: %d entries of lines of %d bytes; %s, %s, %s\n", cache->name, cache->entries, cache->cacheLineSize, printSetsAndWays(cache), cache->writeBack ? "write-back" : "write-thru", cacheReplacementPolicyName(cache, buffer));
-    printf("%s: %d accesses, %d hits (%d%%), %d misses, %d miss reads, %d miss writes\n", cache->name, cache->totalCacheAccess, cache->totalCacheHits, percent(cache->totalCacheHits, cache->totalCacheAccess), cache->totalCacheMisses, cache->totalMissReads, cache->totalMissWrites);
+    printf("%s main cache: %d entries of lines of %d bytes; %s, %s, %s\n", cache->name, cache->entries, cache->cacheLineSize, printSetsAndWays(cache), cache->writeBack ? "write-back" : "write-thru", cacheReplacementPolicyName(cache, buffer));
+    printf("%s main cache: %d accesses, %d hits (%d%%), %d misses, %d miss reads, %d miss writes\n", cache->name, cache->totalCacheAccess, cache->totalCacheHits, percent(cache->totalCacheHits, cache->totalCacheAccess), cache->totalCacheMisses, cache->totalMissReads, cache->totalMissWrites);
     if (cache->writeBack) {
-        printf("%s: %d dirty cache lines remain\n", cache->name, countDirtyLines(cache));
+        printf("%s main cache: %d dirty cache lines remain\n", cache->name, countDirtyLinesForCache(cache));
+    }
+}
+
+void printCacheStatisticsForVictimCache(Cache* cache) {
+    printf("%s victim cache: %d entries of lines of %d bytes; %s, %s, %s\n", cache->name, cache->victimCache.entries, cache->cacheLineSize, "fully associative", cache->writeBack ? "write-back" : "write-thru", "FIFO");
+    printf("%s victim cache: %d accesses, %d hits (%d%%), %d misses, %d miss reads, %d miss writes\n", cache->name, cache->victimCache.totalCacheAccess, cache->victimCache.totalCacheHits, percent(cache->victimCache.totalCacheHits, cache->victimCache.totalCacheAccess), cache->victimCache.totalCacheMisses, cache->victimCache.totalMissReads, cache->victimCache.totalMissWrites);
+    if (cache->writeBack) {
+        printf("%s victim cache: %d dirty cache lines remain\n", cache->name, countDirtyLinesForVictimCache(&cache->victimCache));
     }
 }
 
 void printCacheStatisticsForCacheDescription(CacheDescription* cacheDescription) {
     printf("      %d addresses (%d %s, %d %s, %d %s)\n", cacheDescription->numberOfMemoryReference, cacheDescription->numberOfType[FETCH], memoryAccessTypeName(FETCH), cacheDescription->numberOfType[LOAD], memoryAccessTypeName(LOAD), cacheDescription->numberOfType[STORE], memoryAccessTypeName(STORE));
     printCacheStatisticsForCache(cacheDescription->cache);
+    if (cacheDescription->cache->victimCache.entries) {
+        printCacheStatisticsForVictimCache(cacheDescription->cache);
+    }
     printf("\n");
 }
 
