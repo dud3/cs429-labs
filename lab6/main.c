@@ -1,4 +1,4 @@
-#include "global.h"
+#include "debug.h"
 #include "cds.h"
 #include "read_cds.h"
 #include "simulate.h"
@@ -23,7 +23,7 @@ int main(int argc, char** argv) {
         }
     }
     readCacheDescriptions(argv[1]);
-    // initCaches();
+    initCaches();
     // simulateCaches(argv[1]);
     // printCacheStatistics();
     deleteCacheDescriptions();

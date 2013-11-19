@@ -1,5 +1,5 @@
 #include "utils.h"
-#include "global.h"
+#include "debug.h"
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
@@ -89,5 +89,17 @@ int skipLine(FILE* file) {
     }
     c = skipBlanks(file);
     return c;
+}
+
+const char* memoryAccessTypeName(enum MemoryAccessType type) {
+    switch(type) {
+        case FETCH:
+            return "Fetch";
+        case LOAD:
+            return "Load";
+        case STORE:
+            return "Store";
+    }
+    return "invalid";
 }
 

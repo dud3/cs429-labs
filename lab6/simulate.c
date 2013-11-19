@@ -1,5 +1,5 @@
 #include "simulate.h"
-#include "global.h"
+#include "debug.h"
 #include "utils.h"
 #include "cds.h"
 #include <ctype.h>

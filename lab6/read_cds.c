@@ -1,6 +1,6 @@
 #define _GNU_SOURCE // For strcasestr
 #include "read_cds.h"
-#include "global.h"
+#include "debug.h"
 #include "utils.h"
 #include "cds.h"
 #include <string.h>

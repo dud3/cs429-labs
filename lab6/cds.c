@@ -1,4 +1,4 @@
-#include "global.h"
+#include "utils.h"
 #include "cds.h"
 #include <stdlib.h>
 
@@ -14,18 +14,6 @@ const char* printSetsAndWays(Cache* cache) {
     static char buffer[64];
     sprintf(buffer, "%d sets of %d ways", cache->entries / cache->numberOfWays, cache->numberOfWays);
     return buffer;
-}
-
-const char* memoryAccessTypeName(enum MemoryAccessType type) {
-    switch(type) {
-        case FETCH:
-            return "Fetch";
-        case LOAD:
-            return "Load";
-        case STORE:
-            return "Store";
-    }
-    return "invalid";
 }
 
 int percent(int a, int b) {

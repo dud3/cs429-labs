@@ -1,5 +1,5 @@
 #pragma once
-#include "global.h"
+#include "utils.h"
 
 enum CacheReplacementPolicy {
     FIFO,
@@ -53,16 +53,8 @@ typedef struct CacheDescription {
 
 extern CacheDescription* cacheDescriptionRoot;
 const char* printSetsAndWays(Cache*);
-const char* memoryAccessTypeName(enum MemoryAccessType);
 const char* cacheReplacementPolicyName(Cache*, char*);
-void debugPrintCache(Cache*);
-void debugPrintCacheDescription(CacheDescription*);
-void printCacheStatisticsForCache(Cache*);
-void printCacheStatisticsForCacheDescription(CacheDescription*);
-void printCacheStatistics();
 int countDirtyLines(Cache*);
-void initCacheDescription(CacheDescription*);
 void initCaches();
-void initCacheDescriptionForTrace(CacheDescription*);
 void initCachesForTrace();
 
