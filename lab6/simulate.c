@@ -97,16 +97,19 @@ int computeSetIndex(Cache* cache, int address) {
     return ((address >> logOfTwo(cache->cacheLineSize)) & mask(logOfTwo(cache->entries / cache->numberOfWays))) * cache->numberOfWays;
 }
 
-int searchCacheFor(Cache* cache, int address) {
+int searchCacheFor(Cache* cache, int address, char* full) {
     int cacheEntryIndex;
     int i;
     address = getBaseCacheAddress(cache, address);
     cacheEntryIndex = computeSetIndex(cache, address);
+    *full = 1;
     if (debug) {
         fprintf(debugFile, "%s: search cache lines %d to %d for 0x%08X\n", cache->name, cacheEntryIndex, cacheEntryIndex + cache->numberOfWays - 1, address);
     }
     for (i = 0; i < cache->numberOfWays; ++i) {
-        if (cache->cacheLine[cacheEntryIndex + i].valid && (address == cache->cacheLine[cacheEntryIndex+i].tag)) {
+        if (!cache->cacheLine[cacheEntryIndex + i].valid) {
+            *full = 0;
+        } else if (address == cache->cacheLine[cacheEntryIndex+i].tag) {
             return cacheEntryIndex + i;
         }
     }
@@ -229,6 +232,7 @@ void updateReplacementData(int time, Cache* cache, CacheLine* cacheEntry) {
 }
 
 // TODO
+#if 0
 char cacheFull(Cache* cache) {
     int i;
     for (i = 0; i < cache->entries; ++i) {
@@ -238,6 +242,7 @@ char cacheFull(Cache* cache) {
     }
     return 1;
 }
+#endif
 
 void swapCacheLines(CacheLine* a, CacheLine* b) {
     CacheLine tmp;
@@ -250,13 +255,14 @@ void simulateReferenceToCacheLine(CacheDescription* cacheDescription, MemoryRefe
     // TODO consider write-thru
     int cacheEntryIndex;
     int victim;
+    char full;
     CacheLine* cacheEntry = 0;
     Cache* cache = cacheDescription->cache;
     if (debug) {
         fprintf(debugFile, "%s: %s Reference 0x%08X of length %d\n", cacheDescription->name, memoryAccessTypeName(reference->type), reference->address, reference->length);
     }
     ++cache->totalCacheAccess;
-    cacheEntryIndex = searchCacheFor(cache, reference->address); // Find in cache
+    cacheEntryIndex = searchCacheFor(cache, reference->address, &full); // Find in cache
     if (0 <= cacheEntryIndex) { // Found
         ++cache->totalCacheHits;
         if (debug) {
@@ -266,7 +272,7 @@ void simulateReferenceToCacheLine(CacheDescription* cacheDescription, MemoryRefe
         updateReplacementData(cacheDescription->numberOfMemoryReference, cache, cacheEntry);
     } else { // Not found
         ++cache->totalCacheMisses;
-        if (!cacheFull(cache)) {
+        if (!full) {
             victim = -1;
         } else {
             ++cache->victimCache.totalCacheAccess;
