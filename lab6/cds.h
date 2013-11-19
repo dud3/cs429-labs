@@ -10,7 +10,7 @@ enum CacheReplacementPolicy {
 typedef struct {
     char valid;
     char dirty;
-    char* actualData;
+    // TODO char* actualData;
     int tag;
     int replacementData;
 } CacheLine;
