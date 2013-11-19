@@ -27,36 +27,6 @@ const char* memoryAccessTypeName(enum MemoryAccessType type) {
     return "invalid";
 }
 
-const char* cacheReplacementPolicyName(Cache* cache, char* buffer) {
-    switch(cache->replacementPolicy) {
-        case FIFO:
-            return "FIFO";
-        case LRU:
-            return "LRU";
-        case RANDOM:
-            return "RANDOM";
-        case LFU: {
-            sprintf(buffer, "LFU (decay=%d)", cache->lfuDecayInterval);
-            return buffer;
-        }
-    };
-    return "Invalid policy";
-}
-
-void debugPrintCache(Cache* cache) {
-    char buffer[1024];
-    fprintf(debugFile, "%s: Total number of entries: %d\n", cache->name,  cache->entries);
-    fprintf(debugFile, "%s: %s\n", cache->name,  printSetsAndWays(cache));
-    fprintf(debugFile, "%s: Each cache line is %d bytes\n", cache->name,  cache->cacheLineSize);
-    fprintf(debugFile, "%s: Cache is %s\n", cache->name,  cache->writeBack ? "write-back" : "write-thru");
-    fprintf(debugFile, "%s: With a %s replacement policy\n", cache->name, cacheReplacementPolicyName(cache, buffer));
-}
-
-
-void debugPrintCacheDescription(CacheDescription* cacheDescription) {
-    debugPrintCache(cacheDescription->cache);
-}
-
 int percent(int a, int b) {
     if (!b) {
         return 0;
@@ -137,30 +107,6 @@ void initCachesForTrace() {
     while (cacheDescription) {
         initCacheDescriptionForTrace(cacheDescription);
         cacheDescription = cacheDescription->next;
-    }
-}
-
-void deleteCache(Cache* cache) {
-    free(cache->cacheLine);
-    free(cache->name);
-    if (cache->victimCache.entries) {
-        free(cache->victimCache.cacheLine);
-    }
-    free(cache);
-}
-
-void deleteCacheDescription(CacheDescription* cacheDescription) {
-    free(cacheDescription->name);
-    deleteCache(cacheDescription->cache);
-    free(cacheDescription);
-}
-
-void deleteCaches() {
-    CacheDescription* cacheDescription = cacheDescriptionRoot;
-    while (cacheDescription) {
-        CacheDescription* old = cacheDescription;
-        cacheDescription = cacheDescription->next;
-        deleteCacheDescription(old);
     }
 }
 

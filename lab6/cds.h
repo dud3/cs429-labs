@@ -27,8 +27,6 @@ typedef struct {
 } VictimCache;
 
 typedef struct {
-    char* name;
-    char writeBack;
     int cacheLineSize;
     int numberOfWays;
     int entries;
@@ -38,17 +36,19 @@ typedef struct {
     int totalMissReads;
     int totalMissWrites;
     int lfuDecayInterval;
-    enum CacheReplacementPolicy replacementPolicy;
+    char* name;
     CacheLine* cacheLine;
+    char writeBack;
+    enum CacheReplacementPolicy replacementPolicy;
     VictimCache victimCache;
 } Cache;
 
 typedef struct CacheDescription {
     int numberOfMemoryReference;
     int numberOfType[NUMBER_OF_MEMORY_ACCESS_TYPE];
-    struct CacheDescription* next;
     char* name;
     Cache* cache;
+    struct CacheDescription* next;
 } CacheDescription;
 
 extern CacheDescription* cacheDescriptionRoot;
@@ -65,7 +65,4 @@ void initCacheDescription(CacheDescription*);
 void initCaches();
 void initCacheDescriptionForTrace(CacheDescription*);
 void initCachesForTrace();
-void deleteCache(Cache*);
-void deleteCacheDescription(CacheDescription*);
-void deleteCaches();
 

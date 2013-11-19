@@ -25,7 +25,7 @@ void deleteToken(Token* t) {
 
 void putCharInTokenAt(Token* t, char c, int i) {
     if (t->length <= i) {
-        t->length = 2 * t->length;
+        t->length <<= 1;
         t->value = (char*) realloc(t->value, t->length);
         if (!t->value) {
             fprintf(stderr, "Cannot allocate memory\n");
@@ -38,7 +38,7 @@ void putCharInTokenAt(Token* t, char c, int i) {
 void getToken(FILE* cacheDescriptionFile, Token *t) {
     int c;
     int i = 0;
-    putCharInTokenAt(t, '\0', i);
+    putCharInTokenAt(t, '\0', 0);
     c = skipBlanks(cacheDescriptionFile);
     if (c == EOF) {
         return;
@@ -46,9 +46,9 @@ void getToken(FILE* cacheDescriptionFile, Token *t) {
     while (isalnum(c) || (c == '_')) {
         putCharInTokenAt(t, c, i);
         ++i;
-        putCharInTokenAt(t, '\0', i);
         c = getc(cacheDescriptionFile);
     }
+    putCharInTokenAt(t, '\0', i);
     ungetc(c, cacheDescriptionFile);
 }
 
@@ -163,6 +163,31 @@ void defineKeyValuePair(CacheDescription* cacheDescription, Token* key, Token* v
     fprintf(stderr, "don't understand %s = %s\n",key->value, value->value);
 }
 
+const char* cacheReplacementPolicyName(Cache* cache, char* buffer) {
+    switch(cache->replacementPolicy) {
+        case FIFO:
+            return "FIFO";
+        case LRU:
+            return "LRU";
+        case RANDOM:
+            return "RANDOM";
+        case LFU: {
+            sprintf(buffer, "LFU (decay=%d)", cache->lfuDecayInterval);
+            return buffer;
+        }
+    };
+    return "Invalid policy";
+}
+
+void debugPrintCacheDescription(CacheDescription* cacheDescription) {
+    char buffer[1024];
+    fprintf(debugFile, "%s: Total number of entries: %d\n", cacheDescription->cache->name,  cacheDescription->cache->entries);
+    fprintf(debugFile, "%s: %s\n", cacheDescription->cache->name,  printSetsAndWays(cacheDescription->cache));
+    fprintf(debugFile, "%s: Each cache line is %d bytes\n", cacheDescription->cache->name,  cacheDescription->cache->cacheLineSize);
+    fprintf(debugFile, "%s: Cache is %s\n", cacheDescription->cache->name,  cacheDescription->cache->writeBack ? "write-back" : "write-thru");
+    fprintf(debugFile, "%s: With a %s replacement policy\n", cacheDescription->cache->name, cacheReplacementPolicyName(cacheDescription->cache, buffer));
+}
+
 CacheDescription* readCacheDescriptionFileEntry(FILE* cacheDescriptionFile) {
     int c;
     Token* key;
@@ -181,14 +206,17 @@ CacheDescription* readCacheDescriptionFileEntry(FILE* cacheDescriptionFile) {
     CacheDescription* cacheDescription = (CacheDescription*) malloc(sizeof(CacheDescription));
     cacheDescription->name = 0;
     cacheDescription->cache = (Cache*) malloc(sizeof(Cache));
-    cacheDescription->cache->writeBack = 1;
+    cacheDescription->next = 0;
     cacheDescription->cache->cacheLineSize = 64;
     cacheDescription->cache->numberOfWays = 2;
     cacheDescription->cache->entries = 1024;
     cacheDescription->cache->lfuDecayInterval = 200000;
-    cacheDescription->cache->replacementPolicy = FIFO;
+    cacheDescription->cache->name = 0;
     cacheDescription->cache->cacheLine = 0;
+    cacheDescription->cache->writeBack = 1;
+    cacheDescription->cache->replacementPolicy = FIFO;
     cacheDescription->cache->victimCache.entries = 0;
+    cacheDescription->cache->victimCache.cacheLine = 0;
     key = createToken();
     value = createToken();
     while ((c = getKeyValuePair(cacheDescriptionFile, key, value)) != EOF) {
@@ -223,5 +251,29 @@ void readCacheDescriptions(const char* cacheDescriptionFileName) {
         cacheDescription->next = 0;
     }
     fclose(cacheDescriptionFile);
+}
+
+void deleteCache(Cache* cache) {
+    free(cache->cacheLine);
+    free(cache->name);
+    if (cache->victimCache.entries) {
+        free(cache->victimCache.cacheLine);
+    }
+    free(cache);
+}
+
+void deleteCacheDescription(CacheDescription* cacheDescription) {
+    free(cacheDescription->name);
+    deleteCache(cacheDescription->cache);
+    free(cacheDescription);
+}
+
+void deleteCacheDescriptions() {
+    CacheDescription* cacheDescription = cacheDescriptionRoot;
+    while (cacheDescription) {
+        CacheDescription* old = cacheDescription;
+        cacheDescription = cacheDescription->next;
+        deleteCacheDescription(old);
+    }
 }
 
