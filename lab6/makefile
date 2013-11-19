@@ -1,3 +1,4 @@
+output := cachesim
 uname := $(shell uname)
 suf := c
 headers := $(wildcard *.h)
@@ -11,13 +12,13 @@ cxx := gcc
 cxxflags := -O0 -Wall
 endif
 
-cachesim: $(objects)
-	$(cxx) $^ $(cxxflags) -o cachesim
+$(output): $(objects)
+	$(cxx) $^ $(cxxflags) -o $(output)
 %.o: %.$(suf) $(headers)
 	$(cxx) -c -o $@ $< $(cxxflags)
 .PHONY: clean
 clean:
-	rm -rf cachesim main.dSYM *.o
+	@rm -rf $(output) main.dSYM *.o
 test: main
 	@echo Test done
 
