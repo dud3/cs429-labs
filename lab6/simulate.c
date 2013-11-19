@@ -71,7 +71,7 @@ int readTraceFile(FILE* traceFile, MemoryReference *reference) {
     return EOF;
 }
 
-void checkForDecay(int time, Cache *c) {
+void checkForDecay(int time, Cache* cache) {
     if (cache->replacementPolicy != LFU) {
         return;
     }
@@ -98,7 +98,7 @@ int searchCacheFor(Cache* cache, int address) {
     int cacheEntryIndex;
     int i;
     address = getBaseCacheAddress(cache, address);
-    cacheEntryIndex = computeSetIndex(c, address);
+    cacheEntryIndex = computeSetIndex(cache, address);
     if (debug) {
         fprintf(debugFile, "%s: search cache lines %d to %d for 0x%08X\n", cache->name, cacheEntryIndex, cacheEntryIndex + cache->numberOfWays - 1, address);
     }
@@ -113,8 +113,8 @@ int searchCacheFor(Cache* cache, int address) {
 int searchVictimCacheFor(Cache* cache, int address) {
     int i;
     address = getBaseCacheAddress(cache, address);
-    for (i = 0; i < cache->victimCache->entries; ++i) {
-        if (cache->victimCache->cacheLine[i].valid && address == cache->victimCache->cacheLine[i].address) {
+    for (i = 0; i < cache->victimCache.entries; ++i) {
+        if (cache->victimCache.cacheLine[i].valid && address == cache->victimCache.cacheLine[i].tag) {
             return i;
         }
     }
@@ -175,7 +175,7 @@ int findVictimInVictimCache(VictimCache* victimCache) {
     int victim;
     int min;
     for (i = 0; i < victimCache->entries; ++i) {
-        if (!(victimCache_>cacheLine[i].valid)) {
+        if (!(victimCache->cacheLine[i].valid)) {
             return i;
         }
     }
@@ -200,7 +200,7 @@ void setReplacementData(int time, Cache* cache, CacheLine* cacheEntry) {
             cacheEntry->replacementData = time;
             break;
         case LFU:
-            cacheEntry->replacement_data = 0;
+            cacheEntry->replacementData = 0;
             checkForDecay(time, cache);
         case RANDOM:
             break;
@@ -216,7 +216,7 @@ void updateReplacementData(int time, Cache* cache, CacheLine* cacheEntry) {
             break;
         case LFU:
             cacheEntry->replacementData += 1;
-            checkForDecay(time, c);
+            checkForDecay(time, cache);
         case RANDOM:
             break;
     }
@@ -254,7 +254,7 @@ void simulateReferenceToCacheLine(CacheDescription* cacheDescription, MemoryRefe
         fprintf(debugFile, "%s: %s Reference 0x%08X of length %d\n", cacheDescription->name, memoryAccessTypeName(reference->type), reference->address, reference->length);
     }
     ++cacheDescription->cache->totalCacheAccess;
-    cacheEntry = searchCacheFor(cacheDescription->cache, reference->address); // Find in cache
+    cacheEntryIndex = searchCacheFor(cacheDescription->cache, reference->address); // Find in cache
     if (0 <= cacheEntryIndex) { // Found
         ++cacheDescription->cache->totalCacheHits;
         found = 1;
@@ -262,7 +262,7 @@ void simulateReferenceToCacheLine(CacheDescription* cacheDescription, MemoryRefe
             fprintf(debugFile, "%s: Found address 0x%08X in cache line %d\n", cacheDescription->name, reference->address, cacheEntryIndex);
         }
         cacheEntry = &cacheDescription->cache->cacheLine[cacheEntryIndex];
-        setReplacementData(cacheDescription->numberOfMemoryReference, cacheDescription->c, cacheEntry);
+        setReplacementData(cacheDescription->numberOfMemoryReference, cacheDescription->cache, cacheEntry);
     } else { // Not found
         found = 0;
         ++cacheDescription->cache->totalCacheMisses;
@@ -323,7 +323,7 @@ void simulateReferenceToMemory(CacheDescription* cacheDescription, MemoryReferen
     cacheDescription->numberOfMemoryReference += 1;
     cacheDescription->numberOfType[reference->type] += 1;
     // Check if the entire reference fits into just one cache line
-    if (getBaseCacheAddress(cacheDescription->c, reference->address) == getBaseCacheAddress(cacheDescription->c, reference->address + reference->length -1)) {
+    if (getBaseCacheAddress(cacheDescription->cache, reference->address) == getBaseCacheAddress(cacheDescription->cache, reference->address + reference->length -1)) {
         simulateReferenceToCacheLine(cacheDescription, reference);
     } else {
         /* reference spans two cache lines.  Convert it to two
@@ -332,7 +332,7 @@ references: the first cache line, and the second cache line */
         MemoryReference reference2;
         /* easiest to compute the second part first */
         reference2.type = reference->type;
-        reference2.address = getBaseCacheAddress(cacheDescription->c, reference->address + reference->length -1);
+        reference2.address = getBaseCacheAddress(cacheDescription->cache, reference->address + reference->length -1);
         reference2.length = reference->address + reference->length - reference2.address;
         reference1.type = reference->type;
         reference1.address = reference->address;

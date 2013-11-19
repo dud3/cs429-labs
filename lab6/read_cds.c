@@ -198,7 +198,7 @@ CacheDescription* readCacheDescriptionFileEntry(FILE* cacheDescriptionFile) {
     deleteToken(value);
     cacheDescription->cache->name = allocateString(cacheDescription->name);
     if (debug) {
-        debugPrintCds(cacheDescription);
+        debugPrintCacheDescription(cacheDescription);
     }
     return cacheDescription;
 }
@@ -210,7 +210,7 @@ void readCacheDescriptions(const char* cacheDescriptionFileName) {
     if (!cacheDescriptionFile) {
         fprintf (stderr,"Cannot open CDS file %s\n", cacheDescriptionFileName);
     }
-    while (cacheDescription = readCacheDescriptionFileEntry(cacheDescriptionFile)) {
+    while ((cacheDescription = readCacheDescriptionFileEntry(cacheDescriptionFile))) {
         if (!cacheDescriptionRoot) {
             cacheDescriptionRoot = cacheDescription;
         } else {

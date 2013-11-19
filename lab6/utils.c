@@ -54,7 +54,7 @@ int decValue(char c) {
     return -1;
 }
 
-char* allocString(const char* name) {
+char* allocateString(const char* name) {
     char* p;
     if (!name) {
         return 0;

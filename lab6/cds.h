@@ -1,4 +1,5 @@
 #pragma once
+#include "global.h"
 
 enum CacheReplacementPolicy {
     FIFO,
@@ -63,7 +64,7 @@ int countDirtyLines(Cache*);
 void initCacheDescription(CacheDescription*);
 void initCaches();
 void initCacheDescriptionForTrace(CacheDescription*);
-void initCacheseForTrace();
+void initCachesForTrace();
 void deleteCache(Cache*);
 void deleteCacheDescription(CacheDescription*);
 void deleteCaches();

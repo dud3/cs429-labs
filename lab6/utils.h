@@ -5,7 +5,7 @@ int logOfTwo(int);
 int mask(int);
 char isHex(int);
 int hexValue(char);
-int devValue(char);
+int decValue(char);
 char* allocateString(const char*);
 int skipLine(FILE*);
 int skipBlanks(FILE*);
