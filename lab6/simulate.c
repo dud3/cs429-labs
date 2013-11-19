@@ -2,6 +2,8 @@
 #include "global.h"
 #include "utils.h"
 #include "cds.h"
+#include <ctype.h>
+#include <stdlib.h>
 
 typedef struct {
     int address;

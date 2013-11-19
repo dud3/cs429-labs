@@ -1,5 +1,8 @@
 #include "utils.h"
 #include "global.h"
+#include <stdlib.h>
+#include <string.h>
+#include <ctype.h>
 
 int logOfTwo(int n) {
     int i = 0;

@@ -1,7 +1,11 @@
+#define _GNU_SOURCE // For strcasestr
 #include "read_cds.h"
 #include "global.h"
 #include "utils.h"
 #include "cds.h"
+#include <string.h>
+#include <stdlib.h>
+#include <ctype.h>
 
 #define MIN_TOKEN_SIZE 128
 

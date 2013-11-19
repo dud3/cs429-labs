@@ -1,5 +1,6 @@
 #include "global.h"
 #include "cds.h"
+#include <stdlib.h>
 
 CacheDescription* cacheDescriptionRoot = 0;
 

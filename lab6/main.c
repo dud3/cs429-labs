@@ -2,6 +2,8 @@
 #include "cds.h"
 #include "read_cds.h"
 #include "simulate.h"
+#include <stdlib.h>
+#include <string.h>
 
 void usage(const char* programName) {
     fprintf(stderr,"Usage: %s [-D] cache-descriptions-file  memory-trace-file\n", programName);
