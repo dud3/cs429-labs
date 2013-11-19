@@ -19,6 +19,7 @@ $(output): $(objects)
 .PHONY: clean
 clean:
 	@rm -rf $(output) main.dSYM *.o
-test: main
+test: $(output)
+	@python test.py
 	@echo Test done
 

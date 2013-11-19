@@ -228,7 +228,7 @@ void updateReplacementData(int time, Cache* cache, CacheLine* cacheEntry) {
     }
 }
 
-#if 0
+// TODO
 char cacheFull(Cache* cache) {
     int i;
     for (i = 0; i < cache->entries; ++i) {
@@ -238,7 +238,6 @@ char cacheFull(Cache* cache) {
     }
     return 1;
 }
-#endif
 
 void swapCacheLines(CacheLine* a, CacheLine* b) {
     CacheLine tmp;
@@ -248,6 +247,7 @@ void swapCacheLines(CacheLine* a, CacheLine* b) {
 }
 
 void simulateReferenceToCacheLine(CacheDescription* cacheDescription, MemoryReference* reference) {
+    // TODO consider write-thru
     int cacheEntryIndex;
     int victim;
     CacheLine* cacheEntry = 0;
@@ -265,10 +265,13 @@ void simulateReferenceToCacheLine(CacheDescription* cacheDescription, MemoryRefe
         cacheEntry = &cache->cacheLine[cacheEntryIndex];
         updateReplacementData(cacheDescription->numberOfMemoryReference, cache, cacheEntry);
     } else { // Not found
-        // TODO consider write-thru
         ++cache->totalCacheMisses;
-        ++cache->victimCache.totalCacheAccess;
-        victim = searchVictimCacheFor(cache, reference->address); // Go into victim cache
+        if (!cacheFull(cache)) {
+            victim = -1;
+        } else {
+            ++cache->victimCache.totalCacheAccess;
+            victim = searchVictimCacheFor(cache, reference->address); // Go into victim cache
+        }
         if (0 <= victim) { // Found in victim cache
             ++cache->victimCache.totalCacheHits;
             cacheEntryIndex = findVictimInCache(cache, reference->address);
