@@ -140,3 +140,27 @@ void initCacheDescriptionsForTrace() {
     }
 }
 
+void deleteCache(Cache* cache) {
+    free(cache->cacheLine);
+    free(cache->name);
+    if (cache->victimCache.entries) {
+        free(cache->victimCache.cacheLine);
+    }
+    free(cache);
+}
+
+void deleteCacheDescription(CacheDescription* cacheDescription) {
+    free(cacheDescription->name);
+    deleteCache(cacheDescription->cache);
+    free(cacheDescription);
+}
+
+void deleteCacheDescriptions() {
+    CacheDescription* cacheDescription = cacheDescriptionRoot;
+    while (cacheDescription) {
+        CacheDescription* old = cacheDescription;
+        cacheDescription = cacheDescription->next;
+        deleteCacheDescription(old);
+    }
+}
+

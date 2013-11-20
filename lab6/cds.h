@@ -56,4 +56,5 @@ const char* printSetsAndWays(Cache*);
 void printCacheStatistics();
 void initCacheDescriptions();
 void initCacheDescriptionsForTrace();
+void deleteCacheDescriptions();
 
