@@ -18,10 +18,12 @@ $(output): $(objects)
 	$(cxx) $^ $(cxxflags) -o $(output)
 %.o: %.$(suf) $(headers)
 	$(cxx) -c -o $@ $< $(cxxflags)
-.PHONY: clean
+.PHONY: clean test test_fast
 clean:
 	@rm -rf $(output) main.dSYM *.o
 test: $(output)
 	@$(python) test.py
 	@echo Test done
-
+test_fast: $(output)
+	@$(python) test.py fast
+	@echo Test done

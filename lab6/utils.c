@@ -3,18 +3,12 @@
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
+#include <stdint.h>
 
-int logOfTwo(int n) {
-    int i = 0;
-    if (n <= 0) {
-        return 0;
-    }
-    n >>= 1;
-    while (n) {
-        n >>= 1;
-        ++i;
-    }
-    return i;
+uint32_t logOfTwo(const uint32_t n) {
+    uint32_t y;
+    asm volatile ("bsr %1, %0\n" : "=r"(y) : "r"(n));
+    return y;
 }
 
 int mask(int n) {

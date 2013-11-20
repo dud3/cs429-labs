@@ -12,9 +12,17 @@ if __name__ == '__main__':
     wrong = 0
     for t in trace:
         for c in cache:
-            print('Testing trace: [' + t + '] with cache: [' + c + ']', end='')
             with tempfile.TemporaryFile() as stdout, tempfile.TemporaryFile() as stderr:
-                subprocess.call(['valgrind', '--leak-check=full', '-q', './cachesim', 'test/' + c + '_definition', 'test/test_' + t], stdout=stdout, stderr=stderr)
+                args = ['./cachesim', 'test/' + c + '_definition', 'test/test_' + t]
+                if len(sys.argv) == 1:
+                    args = ['valgrind', '--leak-check=full', '-q'] + args
+                elif len(sys.argv) == 2 and sys.argv[1] == 'fast':
+                    pass
+                else:
+                    print('Usage: %s [fast]' % sys.argv[0])
+                    sys.exit(1)
+                print('Testing trace: [' + t + '] with cache: [' + c + ']', end='')
+                subprocess.call(args, stdout=stdout, stderr=stderr)
                 stdout.seek(0)
                 with open('test/test_' + t + '_' + c, 'rb') as std:
                     if std.read() == stdout.read():

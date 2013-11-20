@@ -80,11 +80,13 @@ void checkForDecay(int time, Cache* cache) {
     }
     if (!(time % cache->lfuDecayInterval)) {
         int i;
+        int entries = cache->entries;
+        CacheLine* cacheLine = cache->cacheLine;
         if (debug) {
             fprintf(debugFile, "%s: LFU decay for all LFU counters\n", cache->name);
         }
-        for (i = 0; i < cache->entries; ++i) {
-            cache->cacheLine[i].replacementData >>= 1;
+        for (i = 0; i < entries; ++i) {
+            cacheLine[i].replacementData >>= 1;
         }
     }
 }
@@ -98,18 +100,20 @@ int computeSetIndex(Cache* cache, int address) {
 }
 
 int searchCacheFor(Cache* cache, int address, char* full) {
-    int cacheEntryIndex;
     int i;
+    int cacheEntryIndex;
+    int numberOfWays = cache->numberOfWays;
+    CacheLine* cacheLine = cache->cacheLine;
     address = getBaseCacheAddress(cache, address);
     cacheEntryIndex = computeSetIndex(cache, address);
     *full = 1;
     if (debug) {
-        fprintf(debugFile, "%s: search cache lines %d to %d for 0x%08X\n", cache->name, cacheEntryIndex, cacheEntryIndex + cache->numberOfWays - 1, address);
+        fprintf(debugFile, "%s: search cache lines %d to %d for 0x%08X\n", cache->name, cacheEntryIndex, cacheEntryIndex + numberOfWays - 1, address);
     }
-    for (i = 0; i < cache->numberOfWays; ++i) {
-        if (!cache->cacheLine[cacheEntryIndex + i].valid) {
+    for (i = 0; i < numberOfWays; ++i) {
+        if (!cacheLine[cacheEntryIndex + i].valid) {
             *full = 0;
-        } else if (address == cache->cacheLine[cacheEntryIndex+i].tag) {
+        } else if (address == cacheLine[cacheEntryIndex+i].tag) {
             return cacheEntryIndex + i;
         }
     }
@@ -118,9 +122,10 @@ int searchCacheFor(Cache* cache, int address, char* full) {
 
 int searchVictimCacheFor(Cache* cache, int address) {
     int i;
+    CacheLine* cacheLine = cache->victimCache.cacheLine;
     address = getBaseCacheAddress(cache, address);
     for (i = 0; i < cache->victimCache.entries; ++i) {
-        if (cache->victimCache.cacheLine[i].valid && (address == cache->victimCache.cacheLine[i].tag)) {
+        if (cacheLine[i].valid && (address == cacheLine[i].tag)) {
             return i;
         }
     }
@@ -132,12 +137,13 @@ int findVictimInCache(Cache* cache, int address) {
     int victim;
     int min;
     int firstIndex = computeSetIndex(cache, address);
-    int setSize = cache->numberOfWays;
+    int numberOfWays = cache->numberOfWays;
+    CacheLine* cacheLine = cache->cacheLine;
     if (debug) {
-        fprintf(debugFile, "%s: look for victim in %d lines starting at %d\n", cache->name,  setSize, firstIndex);
+        fprintf(debugFile, "%s: look for victim in %d lines starting at %d\n", cache->name,  numberOfWays, firstIndex);
     }
-    for (i = 0; i < setSize; ++i) {
-        if (!cache->cacheLine[firstIndex + i].valid) {
+    for (i = 0; i < numberOfWays; ++i) {
+        if (!cacheLine[firstIndex + i].valid) {
             victim = firstIndex + i;
             if (debug) {
                 fprintf(debugFile, "%s: found empty cache entry at %d\n", cache->name,  victim);
@@ -151,17 +157,17 @@ int findVictimInCache(Cache* cache, int address) {
         case FIFO:
         case LRU:
         case LFU:
-            min = cache->cacheLine[firstIndex].replacementData;
+            min = cacheLine[firstIndex].replacementData;
             if (debug) {
-                fprintf(debugFile, "%s: replacement data: [%d, 0x%08X]: %d", cache->name, victim, cache->cacheLine[victim].tag, min);
+                fprintf(debugFile, "%s: replacement data: [%d, 0x%08X]: %d", cache->name, victim, cacheLine[victim].tag, min);
             }
-            for (i = 1; i < setSize; ++i) {
+            for (i = 1; i < numberOfWays; ++i) {
                 if (debug) {
-                    fprintf(debugFile, ", [%d, 0x%08X]: %d", firstIndex+i, cache->cacheLine[firstIndex+i].tag, cache->cacheLine[firstIndex+i].replacementData);
+                    fprintf(debugFile, ", [%d, 0x%08X]: %d", firstIndex+i, cacheLine[firstIndex+i].tag, cacheLine[firstIndex+i].replacementData);
                 }
-                if (cache->cacheLine[firstIndex + i].replacementData < min) {
+                if (cacheLine[firstIndex + i].replacementData < min) {
                     victim = firstIndex + i;
-                    min = cache->cacheLine[firstIndex + i].replacementData;
+                    min = cacheLine[firstIndex + i].replacementData;
                 }
             }
             if (debug) {
@@ -169,7 +175,7 @@ int findVictimInCache(Cache* cache, int address) {
             }
             break;
         case RANDOM:
-            victim = firstIndex + (random() % setSize);
+            victim = firstIndex + (random() % numberOfWays);
             break;
     }
     if (debug) {
@@ -182,18 +188,20 @@ int findVictimInVictimCache(VictimCache* victimCache) {
     int i;
     int victim;
     int min;
-    for (i = 0; i < victimCache->entries; ++i) {
-        if (!(victimCache->cacheLine[i].valid)) {
+    int entries = victimCache->entries;
+    CacheLine* cacheLine = victimCache->cacheLine;
+    for (i = 0; i < entries; ++i) {
+        if (!(cacheLine[i].valid)) {
             return i;
         }
     }
     // No empty cache
     victim = 0;
-    min = victimCache->cacheLine[0].replacementData;
-    for (i = 1; i < victimCache->entries; ++i) {
-        if (victimCache->cacheLine[i].replacementData < min) {
+    min = cacheLine[0].replacementData;
+    for (i = 1; i < entries; ++i) {
+        if (cacheLine[i].replacementData < min) {
             victim = i;
-            min = victimCache->cacheLine[i].replacementData;
+            min = cacheLine[i].replacementData;
         }
     }
     return victim;
