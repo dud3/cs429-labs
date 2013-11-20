@@ -236,7 +236,6 @@ void swapCacheLines(CacheLine* a, CacheLine* b) {
 }
 
 void simulateReferenceToCacheLine(CacheDescription* cacheDescription, MemoryReference* reference) {
-    // TODO consider write-thru
     int cacheEntryIndex;
     int victim;
     char full;
@@ -264,34 +263,33 @@ void simulateReferenceToCacheLine(CacheDescription* cacheDescription, MemoryRefe
                 --cache->totalMissReads;
                 ++cache->victimCache.totalCacheHits;
                 cacheEntryIndex = findVictimInCache(cache, reference->address);
-                // TODO evict in a single function, no need to repeat
-                if (cache->cacheLine[cacheEntryIndex].valid && cache->cacheLine[cacheEntryIndex].dirty) {
+                cacheEntry = &cache->cacheLine[cacheEntryIndex];
+                if (cacheEntry->valid && cacheEntry->dirty) {
                     ++cache->totalMissWrites;
                     if (debug) {
-                        fprintf(debugFile, "%s: Write dirty victim 0x%08X\n", cache->name, cache->cacheLine[cacheEntryIndex].tag);
+                        fprintf(debugFile, "%s: Write dirty victim 0x%08X\n", cache->name, cacheEntry->tag);
                     }
                 }
-                swapCacheLines(&cache->cacheLine[cacheEntryIndex], &cache->victimCache.cacheLine[victim]);
+                swapCacheLines(cacheEntry, &cache->victimCache.cacheLine[victim]);
                 cache->victimCache.cacheLine[victim].replacementData = cacheDescription->numberOfMemoryReference;
-                cacheEntry = &cache->cacheLine[cacheEntryIndex];
                 setReplacementData(cacheDescription->numberOfMemoryReference, cache, cacheEntry);
             } else { // Not found in victim cache
                 ++cache->victimCache.totalCacheMisses;
                 ++cache->victimCache.totalMissReads;
                 victim = findVictimInVictimCache(&cache->victimCache);
                 cacheEntryIndex = findVictimInCache(cache, reference->address);
-                if (cache->cacheLine[cacheEntryIndex].valid && cache->cacheLine[cacheEntryIndex].dirty) {
+                cacheEntry = &cache->cacheLine[cacheEntryIndex];
+                if (cacheEntry->valid && cacheEntry->dirty) {
                     ++cache->totalMissWrites;
                     if (debug) {
-                        fprintf(debugFile, "%s: Write dirty victim 0x%08X\n", cache->name, cache->cacheLine[cacheEntryIndex].tag);
+                        fprintf(debugFile, "%s: Write dirty victim 0x%08X\n", cache->name, cacheEntry->tag);
                     }
                 }
                 if (cache->victimCache.cacheLine[victim].valid && cache->victimCache.cacheLine[victim].dirty) {
                     ++cache->victimCache.totalMissWrites;
                 }
-                swapCacheLines(&cache->cacheLine[cacheEntryIndex], &cache->victimCache.cacheLine[victim]);
+                swapCacheLines(cacheEntry, &cache->victimCache.cacheLine[victim]);
                 cache->victimCache.cacheLine[victim].replacementData = cacheDescription->numberOfMemoryReference;
-                cacheEntry = &cache->cacheLine[cacheEntryIndex];
                 cacheEntry->tag = getBaseCacheAddress(cache, reference->address);
                 cacheEntry->valid = 1;
                 cacheEntry->dirty = 0;
@@ -299,13 +297,13 @@ void simulateReferenceToCacheLine(CacheDescription* cacheDescription, MemoryRefe
             }
         } else { // Do not look into victim cache
             cacheEntryIndex = findVictimInCache(cache, reference->address);
-            if (cache->cacheLine[cacheEntryIndex].valid && cache->cacheLine[cacheEntryIndex].dirty) {
+            cacheEntry = &cache->cacheLine[cacheEntryIndex];
+            if (cacheEntry->valid && cacheEntry->dirty) {
                 ++cache->totalMissWrites;
                 if (debug) {
-                    fprintf(debugFile, "%s: Write dirty victim 0x%08X\n", cache->name, cache->cacheLine[cacheEntryIndex].tag);
+                    fprintf(debugFile, "%s: Write dirty victim 0x%08X\n", cache->name, cacheEntry->tag);
                 }
             }
-            cacheEntry = &cache->cacheLine[cacheEntryIndex];
             cacheEntry->tag = getBaseCacheAddress(cache, reference->address);
             cacheEntry->valid = 1;
             cacheEntry->dirty = 0;
@@ -325,17 +323,6 @@ void simulateReferenceToCacheLine(CacheDescription* cacheDescription, MemoryRefe
             ++cache->totalMissWrites;
         }
     }
-//     if (reference->type == STORE) {
-//         /* If it's not write-back, then it is write-thru.
-//            For write-thru, if it's a write, we write to memory. */
-//         if (!cacheDescription->cache->writeBack) {
-//             cacheDescription->cache->totalMissWrites += 1;
-//             if (debug) fprintf(debugFile, "%s: Write cache line 0x%08X thru to memory\n", cacheDescription->name,  cacheEntry->tag);
-//         } else {
-//             /* For write-back, if it's a write, it's dirty. */
-//             cacheEntry->dirty = 1;
-//         }
-//     }
 }
 
 void simulateReferenceToMemory(CacheDescription* cacheDescription, MemoryReference* reference) {
@@ -345,19 +332,14 @@ void simulateReferenceToMemory(CacheDescription* cacheDescription, MemoryReferen
     if (getBaseCacheAddress(cacheDescription->cache, reference->address) == getBaseCacheAddress(cacheDescription->cache, reference->address + reference->length -1)) {
         simulateReferenceToCacheLine(cacheDescription, reference);
     } else {
-        /* reference spans two cache lines.  Convert it to two
-references: the first cache line, and the second cache line */
         MemoryReference reference1;
         MemoryReference reference2;
-        /* easiest to compute the second part first */
         reference2.type = reference->type;
         reference2.address = getBaseCacheAddress(cacheDescription->cache, reference->address + reference->length -1);
         reference2.length = reference->address + reference->length - reference2.address;
         reference1.type = reference->type;
         reference1.address = reference->address;
         reference1.length = reference->length - reference2.length;
-
-        /* but we do the references first, then second */
         simulateReferenceToCacheLine(cacheDescription, &reference1);
         simulateReferenceToCacheLine(cacheDescription, &reference2);
     }

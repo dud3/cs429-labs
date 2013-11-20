@@ -62,7 +62,6 @@ int countDirtyLinesForVictimCache(VictimCache* victimCache) {
             ++n;
         }
     }
-    // TODO Add debugging code for victimcache
     return n;
 }
 
