@@ -6,7 +6,7 @@ if __name__ == '__main__':
         print('No cachesim')
         sys.exit()
     trace = ['trace' + str(i) for i in range(6)]
-    cache = ['lfu', 'lru', 'test', 'test1', 'test2']
+    cache = ['lfu', 'lru', 'lruv', 'test', 'test1', 'test2']
     wrong = 0
     for t in trace:
         for c in cache:
