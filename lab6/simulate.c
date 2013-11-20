@@ -311,22 +311,6 @@ void simulateReferenceToCacheLine(CacheDescription* cacheDescription, MemoryRefe
             cacheEntry->dirty = 0;
             setReplacementData(cacheDescription->numberOfMemoryReference, cache, cacheEntry);
         }
-        // if (debug) {
-        //     fprintf(debugFile, "%s: Pick victim %d to replace\n", cacheDescription->name, cacheEntryIndex);
-        // }
-        // if (cache->cacheLine[cacheEntryIndex].valid && cache->cacheLine[cacheEntryIndex].dirty) {
-        //     ++cache->totalMissWrites;
-        //     if (debug) {
-        //         fprintf(debugFile, "%s: Write dirty victim 0x%08X\n", cache->name, cache->cacheLine[cacheEntryIndex].tag);
-        //     }
-        // }
-        // if (0 <= victim) {
-        //     if (cache->victimCache.cacheLine[victim].valid && cache->victimCache.cacheLine[victim].dirty) {
-        //         ++cache->victimCache.totalMissWrites;
-        //     }
-        //     swapCacheLines(&cache->cacheLine[cacheEntryIndex], &cache->victimCache.cacheLine[victim]);
-        //     cache->victimCache.cacheLine[victim].replacementData = cacheDescription->numberOfMemoryReference; // Victim cache always FIFO
-        // }
         if (debug) {
             fprintf(debugFile, "%s: Read cache line 0x%08X into entry %d\n", cacheDescription->name,  cacheEntry->tag, cacheEntryIndex);
         }
@@ -335,7 +319,11 @@ void simulateReferenceToCacheLine(CacheDescription* cacheDescription, MemoryRefe
         checkForDecay(cacheDescription->numberOfMemoryReference, cache);
     }
     if (reference->type == STORE) {
-        cacheEntry->dirty = 1;
+        if (cache->writeBack) {
+            cacheEntry->dirty = 1;
+        } else {
+            ++cache->totalMissWrites;
+        }
     }
 //     if (reference->type == STORE) {
 //         /* If it's not write-back, then it is write-thru.
