@@ -101,7 +101,9 @@ void printCacheStatistics() {
 
 void initCacheDescription(CacheDescription* cacheDescription) {
     cacheDescription->cache->cacheLine = (CacheLine*) calloc(cacheDescription->cache->entries, sizeof(CacheLine));
-    cacheDescription->cache->victimCache.cacheLine = (CacheLine*) calloc(cacheDescription->cache->victimCache.entries, sizeof(CacheLine));
+    if (cacheDescription->cache->victimCache.entries) {
+        cacheDescription->cache->victimCache.cacheLine = (CacheLine*) calloc(cacheDescription->cache->victimCache.entries, sizeof(CacheLine));
+    }
 }
 
 void initCacheDescriptions() {
