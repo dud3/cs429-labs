@@ -1321,6 +1321,7 @@ Disassembly of section .text:
   401194:	49 83 c4 04          	add    $0x4,%r12
   401198:	49 39 cc             	cmp    %rcx,%r12
   40119b:	75 ed                	jne    40118a <phase_6+0x6e>
+
   40119d:	be 00 00 00 00       	mov    $0x0,%esi
   4011a2:	eb 19                	jmp    4011bd <phase_6+0xa1>
   4011a4:	48 8b 52 08          	mov    0x8(%rdx),%rdx
@@ -1337,6 +1338,7 @@ Disassembly of section .text:
   4011cb:	83 f9 01             	cmp    $0x1,%ecx
   4011ce:	7f d4                	jg     4011a4 <phase_6+0x88>
   4011d0:	eb dd                	jmp    4011af <phase_6+0x93>
+
   4011d2:	48 8b 1c 24          	mov    (%rsp),%rbx
   4011d6:	48 8b 44 24 08       	mov    0x8(%rsp),%rax
   4011db:	48 89 43 08          	mov    %rax,0x8(%rbx)
@@ -1350,6 +1352,7 @@ Disassembly of section .text:
   4011ff:	48 89 42 08          	mov    %rax,0x8(%rdx)
   401203:	48 c7 40 08 00 00 00 	movq   $0x0,0x8(%rax)
   40120a:	00 
+
   40120b:	bd 05 00 00 00       	mov    $0x5,%ebp
   401210:	48 8b 43 08          	mov    0x8(%rbx),%rax
   401214:	8b 10                	mov    (%rax),%edx
