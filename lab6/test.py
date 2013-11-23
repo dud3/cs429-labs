@@ -9,7 +9,8 @@ if __name__ == '__main__':
         sys.exit()
     trace = ['trace' + str(i) for i in range(6)]
     cache = ['lfu', 'lru', 'lruv', 'test', 'test1', 'test2']
-    wrong = 0
+    wrong = False
+    fast = False
     for t in trace:
         for c in cache:
             with tempfile.TemporaryFile() as stdout, tempfile.TemporaryFile() as stderr:
@@ -17,7 +18,7 @@ if __name__ == '__main__':
                 if len(sys.argv) == 1:
                     args = ['valgrind', '--leak-check=full', '-q'] + args
                 elif len(sys.argv) == 2 and sys.argv[1] == 'fast':
-                    pass
+                    fast = True
                 else:
                     print('Usage: %s [fast]' % sys.argv[0])
                     sys.exit(1)
@@ -29,11 +30,13 @@ if __name__ == '__main__':
                         print(' PASS', end='')
                     else:
                         print(' NG', end='')
-                        wrong = 1
-                    if stderr.tell():
+                        wrong = True
+                    if fast:
+                        print(' NO MEMORY CHECK')
+                    elif stderr.tell():
                         print(' LEAK')
-                        wrong = 1
+                        wrong = True
                     else:
                         print(' CLEAN')
     if not wrong:
-        print('Test passed!')
+        print('All test passed!')
