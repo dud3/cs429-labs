@@ -1,0 +1,6 @@
+      233772 addresses (160099 Fetch, 51572 Load, 22101 Store)
+lru main cache: 1024 entries of lines of 128 bytes; 256 sets of 4 ways, write-thru, LRU
+lru main cache: 236262 accesses, 235694 hits (99%), 568 misses, 567 miss reads, 22101 miss writes
+lru victim cache: 16 entries of lines of 128 bytes; fully associative, write-thru, FIFO
+lru victim cache: 42 accesses, 1 hits (2%), 41 misses, 41 miss reads, 0 miss writes
+

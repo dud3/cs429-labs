@@ -1,0 +1,17 @@
+How to use?
+1. copy cachesim to this folder
+2. run ./test.sh
+3. check the output
+
+Leak Test
+1. run ./leak.sh
+2. valgrind takes a while
+3. check the output/log file
+
+Output Directory:
+=================
+Expected 	: expected_result
+User	 	: tmpdir
+log for valgrind: log4leak
+
+Happy debugging =)
