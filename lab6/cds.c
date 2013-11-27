@@ -43,50 +43,32 @@ int percent(int a, int b) {
 int countDirtyLinesForCache(Cache* cache) {
     int n = 0;
     int i;
-    for (i = 0; i < cache->entries; ++i) {
+    int entries = cache->entries;
+    for (i = 0; i < entries; ++i) {
         if (cache->cacheLine[i].dirty) {
             ++n;
-            if (debug) {
-                fprintf(debugFile, "%s: Cache Line 0x%08X is dirty\n", cache->name, cache->cacheLine[i].tag);
             }
         }
     }
     return n;
 }
 
-int countDirtyLinesForVictimCache(VictimCache* victimCache) {
-    int n = 0;
-    int i;
-    for (i = 0; i < victimCache->entries; ++i) {
-        if (victimCache->cacheLine[i].dirty) {
-            ++n;
-        }
-    }
-    return n;
-}
-
-void printCacheStatisticsForCache(Cache* cache) {
+void printCacheStatisticsForCache(Cache* cache, const char* name) {
     char buffer[1024];
-    printf("%s%s: %d entries of lines of %d bytes; %s, %s, %s\n", cache->name, cache->victimCache.entries ? " main cache" : "", cache->entries, cache->cacheLineSize, printSetsAndWays(cache), cache->writeBack ? "write-back" : "write-thru", cacheReplacementPolicyName(cache, buffer));
+    printf("%s%s: %d entries of lines of %d bytes; %s, %s, %s\n", cache->name, name, cache->entries, cache->cacheLineSize, printSetsAndWays(cache), cache->writeBack ? "write-back" : "write-thru", cacheReplacementPolicyName(cache, buffer));
     printf("%s%s: %d accesses, %d hits (%d%%), %d misses, %d miss reads, %d miss writes\n", cache->name, cache->victimCache.entries ? " main cache" : "", cache->totalCacheAccess, cache->totalCacheHits, percent(cache->totalCacheHits, cache->totalCacheAccess), cache->totalCacheMisses, cache->totalMissReads, cache->totalMissWrites);
     if (cache->writeBack) {
         printf("%s%s: %d dirty cache lines remain\n", cache->name, cache->victimCache.entries ? " main cache" : "", countDirtyLinesForCache(cache));
     }
 }
 
-void printCacheStatisticsForVictimCache(Cache* cache) {
-    printf("%s victim cache: %d entries of lines of %d bytes; %s, %s, %s\n", cache->name, cache->victimCache.entries, cache->cacheLineSize, "fully associative", cache->writeBack ? "write-back" : "write-thru", "FIFO");
-    printf("%s victim cache: %d accesses, %d hits (%d%%), %d misses, %d miss reads, %d miss writes\n", cache->name, cache->victimCache.totalCacheAccess, cache->victimCache.totalCacheHits, percent(cache->victimCache.totalCacheHits, cache->victimCache.totalCacheAccess), cache->victimCache.totalCacheMisses, cache->victimCache.totalMissReads, cache->victimCache.totalMissWrites);
-    if (cache->writeBack) {
-        printf("%s victim cache: %d dirty cache lines remain\n", cache->name, countDirtyLinesForVictimCache(&cache->victimCache));
-    }
-}
-
 void printCacheStatisticsForCacheDescription(CacheDescription* cacheDescription) {
     printf("      %d addresses (%d %s, %d %s, %d %s)\n", cacheDescription->numberOfMemoryReference, cacheDescription->numberOfType[FETCH], memoryAccessTypeName(FETCH), cacheDescription->numberOfType[LOAD], memoryAccessTypeName(LOAD), cacheDescription->numberOfType[STORE], memoryAccessTypeName(STORE));
-    printCacheStatisticsForCache(cacheDescription->cache);
-    if (cacheDescription->cache->victimCache.entries) {
-        printCacheStatisticsForVictimCache(cacheDescription->cache);
+    if (cacheDescription->victimCache) {
+        printCacheStatisticsForCache(cacheDescription->mainCache, " main cache");
+        printCacheStatisticsForCache(cacheDescription->victimCache, " victim cache");
+    } else {
+        printCacheStatisticsForCache(cacheDescription->mainCache, "");
     }
     printf("\n");
 }
@@ -100,9 +82,9 @@ void printCacheStatistics() {
 }
 
 void initCacheDescription(CacheDescription* cacheDescription) {
-    cacheDescription->cache->cacheLine = (CacheLine*) calloc(cacheDescription->cache->entries, sizeof(CacheLine));
-    if (cacheDescription->cache->victimCache.entries) {
-        cacheDescription->cache->victimCache.cacheLine = (CacheLine*) calloc(cacheDescription->cache->victimCache.entries, sizeof(CacheLine));
+    cacheDescription->mainCache->cacheLine = (CacheLine*) calloc(cacheDescription->mainCache->entries, sizeof(CacheLine));
+    if (cacheDescription->victimCache) {
+        cacheDescription->victimCache->cacheLine = (CacheLine*) calloc(cacheDescription->victimCache->entries, sizeof(CacheLine));
     }
 }
 
@@ -117,19 +99,22 @@ void initCacheDescriptions() {
 void initCacheDescriptionForTrace(CacheDescription* cacheDescription) {
     int i;
     cacheDescription->numberOfMemoryReference = 0;
+    memset(cacheDescription->numberOfType, 0, sizeof(cacheDescription->numberOfType));
     for (i = 0; i < NUMBER_OF_MEMORY_ACCESS_TYPE; ++i) {
         cacheDescription->numberOfType[i] = 0;
     }
-    cacheDescription->cache->totalCacheAccess = 0;
-    cacheDescription->cache->totalCacheHits = 0;
-    cacheDescription->cache->totalCacheMisses = 0;
-    cacheDescription->cache->totalMissReads = 0;
-    cacheDescription->cache->totalMissWrites = 0;
-    cacheDescription->cache->victimCache.totalCacheAccess = 0;
-    cacheDescription->cache->victimCache.totalCacheHits = 0;
-    cacheDescription->cache->victimCache.totalCacheMisses = 0;
-    cacheDescription->cache->victimCache.totalMissReads = 0;
-    cacheDescription->cache->victimCache.totalMissWrites = 0;
+    cacheDescription->mainCache->totalCacheAccess = 0;
+    cacheDescription->mainCache->totalCacheHits = 0;
+    cacheDescription->mainCache->totalCacheMisses = 0;
+    cacheDescription->mainCache->totalMissReads = 0;
+    cacheDescription->mainCache->totalMissWrites = 0;
+    if (cacheDescription->victimCache) {
+        cacheDescription->victimCache->totalCacheAccess = 0;
+        cacheDescription->victimCache->totalCacheHits = 0;
+        cacheDescription->victimCache->totalCacheMisses = 0;
+        cacheDescription->victimCache->totalMissReads = 0;
+        cacheDescription->victimCache->totalMissWrites = 0;
+    }
 }
 
 void initCacheDescriptionsForTrace() {
@@ -143,15 +128,15 @@ void initCacheDescriptionsForTrace() {
 void deleteCache(Cache* cache) {
     free(cache->cacheLine);
     free(cache->name);
-    if (cache->victimCache.entries) {
-        free(cache->victimCache.cacheLine);
-    }
     free(cache);
 }
 
 void deleteCacheDescription(CacheDescription* cacheDescription) {
     free(cacheDescription->name);
-    deleteCache(cacheDescription->cache);
+    deleteCache(cacheDescription->mainCache);
+    if (cacheDescription->victimCache) {
+        deleteCache(cacheDescription->victimCache);
+    }
     free(cacheDescription);
 }
 
