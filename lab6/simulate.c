@@ -227,8 +227,6 @@ void simulateReferenceToCacheLine(CacheDescription* cacheDescription, MemoryRefe
                 setReplacementData(cacheDescription->numberOfMemoryReference, victimCache, &victimCache->cacheLine[victim]);
             }
         } else { // Do not look into victim cache
-            cacheEntryIndex = findVictimInCache(mainCache, reference->address);
-            cacheEntry = &mainCache->cacheLine[cacheEntryIndex];
             if (cacheEntry->valid && cacheEntry->dirty) {
                 ++mainCache->totalMissWrites;
             }
