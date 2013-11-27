@@ -199,23 +199,17 @@ void simulateReferenceToCacheLine(CacheDescription* cacheDescription, MemoryRefe
         if (cacheEntry->valid && victimCache) { // Cache is full and there is victim cache
             ++victimCache->totalCacheAccess;
             victim = searchCacheFor(victimCache, reference->address); // Go into victim cache
+            if (cacheEntry->dirty) {
+                ++mainCache->totalMissWrites;
+            }
             if (0 <= victim) { // Found in victim cache, swap
                 --mainCache->totalMissReads;
                 ++victimCache->totalCacheHits;
-                if (cacheEntry->dirty) {
-                    ++mainCache->totalMissWrites;
-                }
                 swapCacheLines(cacheEntry, &victimCache->cacheLine[victim]);
-                setReplacementData(cacheDescription->numberOfMemoryReference, mainCache, cacheEntry);
-                setReplacementData(cacheDescription->numberOfMemoryReference, victimCache, &victimCache->cacheLine[victim]);
             } else { // Not found in victim cache
                 ++victimCache->totalCacheMisses;
                 ++victimCache->totalMissReads;
                 victim = findVictimInCache(victimCache, reference->address);
-                // TODO refactor this part
-                if (cacheEntry->dirty) {
-                    ++mainCache->totalMissWrites;
-                }
                 if (victimCache->cacheLine[victim].valid && victimCache->cacheLine[victim].dirty) {
                     ++victimCache->totalMissWrites;
                 }
@@ -223,9 +217,8 @@ void simulateReferenceToCacheLine(CacheDescription* cacheDescription, MemoryRefe
                 cacheEntry->tag = getBaseCacheAddress(mainCache, reference->address);
                 cacheEntry->valid = 1;
                 cacheEntry->dirty = 0;
-                setReplacementData(cacheDescription->numberOfMemoryReference, mainCache, cacheEntry);
-                setReplacementData(cacheDescription->numberOfMemoryReference, victimCache, &victimCache->cacheLine[victim]);
             }
+            setReplacementData(cacheDescription->numberOfMemoryReference, victimCache, &victimCache->cacheLine[victim]);
         } else { // Do not look into victim cache
             if (cacheEntry->valid && cacheEntry->dirty) {
                 ++mainCache->totalMissWrites;
@@ -233,8 +226,8 @@ void simulateReferenceToCacheLine(CacheDescription* cacheDescription, MemoryRefe
             cacheEntry->tag = getBaseCacheAddress(mainCache, reference->address);
             cacheEntry->valid = 1;
             cacheEntry->dirty = 0;
-            setReplacementData(cacheDescription->numberOfMemoryReference, mainCache, cacheEntry);
         }
+        setReplacementData(cacheDescription->numberOfMemoryReference, mainCache, cacheEntry);
     }
     if (mainCache->replacementPolicy == LFU) {
         checkForDecay(cacheDescription->numberOfMemoryReference, mainCache);
