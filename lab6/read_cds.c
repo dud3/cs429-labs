@@ -1,6 +1,5 @@
 #define _GNU_SOURCE // For strcasestr
 #include "read_cds.h"
-#include "debug.h"
 #include "utils.h"
 #include "cds.h"
 #include <string.h>
@@ -90,9 +89,6 @@ int getKeyValuePair(FILE* cacheDescriptionFile, Token* key, Token* value) {
 }
 
 void defineKeyValuePair(CacheDescription* cacheDescription, Token* key, Token* value) {
-    if (debug) {
-        fprintf(debugFile, "define %s = %s \n", key->value, value->value);
-    }
     if (strcasestr(key->value, "name")) {
         if (cacheDescription->name) {
             free(cacheDescription->name);
@@ -101,78 +97,73 @@ void defineKeyValuePair(CacheDescription* cacheDescription, Token* key, Token* v
         return;
     }
     if (strcasestr(key->value, "line") && strcasestr(key->value, "size")) {
-        cacheDescription->cache->cacheLineSize = atoi(value->value);
+        cacheDescription->mainCache->cacheLineSize = atoi(value->value);
         return;
     }
     if (strcasestr(key->value, "entries")) {
-        cacheDescription->cache->entries = atoi(value->value);
+        cacheDescription->mainCache->entries = atoi(value->value);
         return;
     }
     if (strcasestr(key->value, "ways")) {
-        cacheDescription->cache->numberOfWays = atoi(value->value);
+        cacheDescription->mainCache->numberOfWays = atoi(value->value);
         return;
     }
     if (strcasestr(key->value, "write") && strcasestr(key->value, "back")) {
         if (strcasestr(value->value, "true")) {
-            cacheDescription->cache->writeBack = 1;
+            cacheDescription->mainCache->writeBack = 1;
             return;
         }
         if (strcasestr(value->value, "false")) {
-            cacheDescription->cache->writeBack = 0;
+            cacheDescription->mainCache->writeBack = 0;
             return;
         }
     }
     if ((strcasestr(key->value, "write")) && (strcasestr(key->value, "thru"))) {
         if (strcasestr(value->value, "true")) {
-            cacheDescription->cache->writeBack = 0;
+            cacheDescription->mainCache->writeBack = 0;
             return;
         }
         if (strcasestr(value->value, "false")) {
-            cacheDescription->cache->writeBack = 1;
+            cacheDescription->mainCache->writeBack = 1;
             return;
         }
     }
     if ((strcasestr(key->value, "policy")) || (strcasestr(key->value, "replace"))) {
         if (strcasestr(value->value, "LRU")) {
-            cacheDescription->cache->replacementPolicy = LRU;
+            cacheDescription->mainCache->replacementPolicy = LRU;
             return;
         }
         if (strcasestr(value->value, "LFU")) {
-            cacheDescription->cache->replacementPolicy = LFU;
+            cacheDescription->mainCache->replacementPolicy = LFU;
             return;
         }
         if (strcasestr(value->value, "random")) {
-            cacheDescription->cache->replacementPolicy = RANDOM;
+            cacheDescription->mainCache->replacementPolicy = RANDOM;
             return;
         }
         if (strcasestr(value->value, "FIFO")) {
-            cacheDescription->cache->replacementPolicy = FIFO;
+            cacheDescription->mainCache->replacementPolicy = FIFO;
             return;
         }
     }
     if ((strcasestr(key->value, "decay")) && (strcasestr(key->value, "interval"))) {
-        cacheDescription->cache->lfuDecayInterval = atoi(value->value);
+        cacheDescription->mainCache->lfuDecayInterval = atoi(value->value);
         return;
     }
     if (strcasestr(key->value, "ways")) {
-        cacheDescription->cache->numberOfWays = atoi(value->value);
+        cacheDescription->mainCache->numberOfWays = atoi(value->value);
         return;
     }
     // Define victim cache
     if (strcasestr(key->value, "victim")) {
-        cacheDescription->cache->victimCache.entries = atoi(value->value);
+        if (cacheDescription->victimCache) {
+            free(cacheDescription->victimCache);
+        }
+        cacheDescription->victimCache = (Cache*) malloc(sizeof(Cache));
+        cacheDescription->victimCache->entries = atoi(value->value);
         return;
     }
     fprintf(stderr, "don't understand %s = %s\n",key->value, value->value);
-}
-
-void debugPrintCacheDescription(CacheDescription* cacheDescription) {
-    char buffer[1024];
-    fprintf(debugFile, "%s: Total number of entries: %d\n", cacheDescription->cache->name,  cacheDescription->cache->entries);
-    fprintf(debugFile, "%s: %s\n", cacheDescription->cache->name,  printSetsAndWays(cacheDescription->cache));
-    fprintf(debugFile, "%s: Each cache line is %d bytes\n", cacheDescription->cache->name,  cacheDescription->cache->cacheLineSize);
-    fprintf(debugFile, "%s: Cache is %s\n", cacheDescription->cache->name,  cacheDescription->cache->writeBack ? "write-back" : "write-thru");
-    fprintf(debugFile, "%s: With a %s replacement policy\n", cacheDescription->cache->name, cacheReplacementPolicyName(cacheDescription->cache, buffer));
 }
 
 CacheDescription* readCacheDescriptionFileEntry(FILE* cacheDescriptionFile) {
@@ -192,18 +183,17 @@ CacheDescription* readCacheDescriptionFileEntry(FILE* cacheDescriptionFile) {
     }
     CacheDescription* cacheDescription = (CacheDescription*) malloc(sizeof(CacheDescription));
     cacheDescription->name = 0;
-    cacheDescription->cache = (Cache*) malloc(sizeof(Cache));
+    cacheDescription->mainCache = (Cache*) malloc(sizeof(Cache));
+    cacheDescription->victimCache = 0;
     cacheDescription->next = 0;
-    cacheDescription->cache->cacheLineSize = 64;
-    cacheDescription->cache->numberOfWays = 2;
-    cacheDescription->cache->entries = 1024;
-    cacheDescription->cache->lfuDecayInterval = 200000;
-    cacheDescription->cache->name = 0;
-    cacheDescription->cache->cacheLine = 0;
-    cacheDescription->cache->writeBack = 1;
-    cacheDescription->cache->replacementPolicy = FIFO;
-    cacheDescription->cache->victimCache.entries = 0;
-    cacheDescription->cache->victimCache.cacheLine = 0;
+    cacheDescription->mainCache->cacheLineSize = 64;
+    cacheDescription->mainCache->numberOfWays = 2;
+    cacheDescription->mainCache->entries = 1024;
+    cacheDescription->mainCache->lfuDecayInterval = 200000;
+    cacheDescription->mainCache->name = 0;
+    cacheDescription->mainCache->cacheLine = 0;
+    cacheDescription->mainCache->writeBack = 1;
+    cacheDescription->mainCache->replacementPolicy = FIFO;
     key = createToken();
     value = createToken();
     while ((c = getKeyValuePair(cacheDescriptionFile, key, value)) != EOF) {
@@ -211,9 +201,15 @@ CacheDescription* readCacheDescriptionFileEntry(FILE* cacheDescriptionFile) {
     }
     deleteToken(key);
     deleteToken(value);
-    cacheDescription->cache->name = allocateString(cacheDescription->name);
-    if (debug) {
-        debugPrintCacheDescription(cacheDescription);
+    cacheDescription->mainCache->name = allocateString(cacheDescription->name);
+    if (cacheDescription->victimCache) {
+        cacheDescription->victimCache->cacheLineSize = cacheDescription->mainCache->cacheLineSize;
+        cacheDescription->victimCache->numberOfWays = cacheDescription->victimCache->entries;
+        cacheDescription->victimCache->lfuDecayInterval = 0;
+        cacheDescription->victimCache->name = allocateString(cacheDescription->name);
+        cacheDescription->victimCache->cacheLine = 0;
+        cacheDescription->victimCache->writeBack = 1;
+        cacheDescription->victimCache->replacementPolicy = FIFO;
     }
     return cacheDescription;
 }

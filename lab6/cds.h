@@ -19,12 +19,12 @@ typedef struct {
     int cacheLineSize;
     int numberOfWays;
     int entries;
+    int lfuDecayInterval;
     int totalCacheAccess;
     int totalCacheHits;
     int totalCacheMisses;
     int totalMissReads;
     int totalMissWrites;
-    int lfuDecayInterval;
     char* name;
     CacheLine* cacheLine;
     char writeBack;
