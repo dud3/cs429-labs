@@ -1,7 +1,7 @@
 #include "cds.h"
-#include "read_cds.h"
 #include "utils.h"
 #include <stdlib.h>
+#include <string.h>
 
 CacheDescription* cacheDescriptionRoot = 0;
 
@@ -47,7 +47,6 @@ int countDirtyLinesForCache(Cache* cache) {
     for (i = 0; i < entries; ++i) {
         if (cache->cacheLine[i].dirty) {
             ++n;
-            }
         }
     }
     return n;
@@ -56,9 +55,9 @@ int countDirtyLinesForCache(Cache* cache) {
 void printCacheStatisticsForCache(Cache* cache, const char* name) {
     char buffer[1024];
     printf("%s%s: %d entries of lines of %d bytes; %s, %s, %s\n", cache->name, name, cache->entries, cache->cacheLineSize, printSetsAndWays(cache), cache->writeBack ? "write-back" : "write-thru", cacheReplacementPolicyName(cache, buffer));
-    printf("%s%s: %d accesses, %d hits (%d%%), %d misses, %d miss reads, %d miss writes\n", cache->name, cache->victimCache.entries ? " main cache" : "", cache->totalCacheAccess, cache->totalCacheHits, percent(cache->totalCacheHits, cache->totalCacheAccess), cache->totalCacheMisses, cache->totalMissReads, cache->totalMissWrites);
+    printf("%s%s: %d accesses, %d hits (%d%%), %d misses, %d miss reads, %d miss writes\n", cache->name, name, cache->totalCacheAccess, cache->totalCacheHits, percent(cache->totalCacheHits, cache->totalCacheAccess), cache->totalCacheMisses, cache->totalMissReads, cache->totalMissWrites);
     if (cache->writeBack) {
-        printf("%s%s: %d dirty cache lines remain\n", cache->name, cache->victimCache.entries ? " main cache" : "", countDirtyLinesForCache(cache));
+        printf("%s%s: %d dirty cache lines remain\n", cache->name, name, countDirtyLinesForCache(cache));
     }
 }
 
