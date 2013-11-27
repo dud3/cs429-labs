@@ -1,5 +1,4 @@
 #include "simulate.h"
-#include "debug.h"
 #include "utils.h"
 #include "cds.h"
 #include <ctype.h>
@@ -96,31 +95,16 @@ int computeSetIndex(Cache* cache, int address) {
     return ((address >> logOfTwo(cache->cacheLineSize)) & mask(logOfTwo(cache->entries / cache->numberOfWays))) * cache->numberOfWays;
 }
 
-int searchCacheFor(Cache* cache, int address, char* full) {
+int searchCacheFor(Cache* cache, int address) {
     int i;
     int cacheEntryIndex;
     int numberOfWays = cache->numberOfWays;
     CacheLine* cacheLine = cache->cacheLine;
     address = getBaseCacheAddress(cache, address);
     cacheEntryIndex = computeSetIndex(cache, address);
-    *full = 1;
     for (i = 0; i < numberOfWays; ++i) {
-        if (!cacheLine[cacheEntryIndex + i].valid) {
-            *full = 0;
-        } else if (address == cacheLine[cacheEntryIndex+i].tag) {
+        if (cacheLine[cacheEntryIndex + i].valid && address == cacheLine[cacheEntryIndex + i].tag) {
             return cacheEntryIndex + i;
-        }
-    }
-    return -1;
-}
-
-int searchVictimCacheFor(Cache* cache, int address) {
-    int i;
-    CacheLine* cacheLine = cache->victimCache.cacheLine;
-    address = getBaseCacheAddress(cache, address);
-    for (i = 0; i < cache->victimCache.entries; ++i) {
-        if (cacheLine[i].valid && (address == cacheLine[i].tag)) {
-            return i;
         }
     }
     return -1;
@@ -135,8 +119,7 @@ int findVictimInCache(Cache* cache, int address) {
     CacheLine* cacheLine = cache->cacheLine;
     for (i = 0; i < numberOfWays; ++i) {
         if (!cacheLine[firstIndex + i].valid) {
-            victim = firstIndex + i;
-            return victim;
+            return firstIndex + i;
         }
     }
     // No empty cache
@@ -156,29 +139,6 @@ int findVictimInCache(Cache* cache, int address) {
         case RANDOM:
             victim = firstIndex + (random() % numberOfWays);
             break;
-    }
-    return victim;
-}
-
-int findVictimInVictimCache(VictimCache* victimCache) {
-    int i;
-    int victim;
-    int min;
-    int entries = victimCache->entries;
-    CacheLine* cacheLine = victimCache->cacheLine;
-    for (i = 0; i < entries; ++i) {
-        if (!(cacheLine[i].valid)) {
-            return i;
-        }
-    }
-    // No empty cache
-    victim = 0;
-    min = cacheLine[0].replacementData;
-    for (i = 1; i < entries; ++i) {
-        if (cacheLine[i].replacementData < min) {
-            victim = i;
-            min = cacheLine[i].replacementData;
-        }
     }
     return victim;
 }
@@ -222,71 +182,70 @@ void swapCacheLines(CacheLine* a, CacheLine* b) {
 void simulateReferenceToCacheLine(CacheDescription* cacheDescription, MemoryReference* reference) {
     int cacheEntryIndex;
     int victim;
-    char full;
     CacheLine* cacheEntry = 0;
-    Cache* cache = cacheDescription->cache;
-    ++cache->totalCacheAccess;
-    cacheEntryIndex = searchCacheFor(cache, reference->address, &full); // Find in cache
+    Cache* mainCache = cacheDescription->mainCache;
+    Cache* victimCache = cacheDescription->victimCache;
+    ++mainCache->totalCacheAccess;
+    cacheEntryIndex = searchCacheFor(mainCache, reference->address); // Find in cache
+    cacheEntry = &mainCache->cacheLine[cacheEntryIndex];
     if (0 <= cacheEntryIndex) { // Found
-        ++cache->totalCacheHits;
-        cacheEntry = &cache->cacheLine[cacheEntryIndex];
-        updateReplacementData(cacheDescription->numberOfMemoryReference, cache, cacheEntry);
+        ++mainCache->totalCacheHits;
+        updateReplacementData(cacheDescription->numberOfMemoryReference, mainCache, cacheEntry);
     } else { // Not found
-        ++cache->totalCacheMisses;
-        ++cache->totalMissReads;
-        if (full && cache->victimCache.entries) { // Cache is full and there is victim cache
-            ++cache->victimCache.totalCacheAccess;
-            victim = searchVictimCacheFor(cache, reference->address); // Go into victim cache
+        ++mainCache->totalCacheMisses;
+        ++mainCache->totalMissReads;
+        cacheEntryIndex = findVictimInCache(mainCache, reference->address);
+        cacheEntry = &mainCache->cacheLine[cacheEntryIndex];
+        if (cacheEntry->valid && victimCache) { // Cache is full and there is victim cache
+            ++victimCache->totalCacheAccess;
+            victim = searchCacheFor(victimCache, reference->address); // Go into victim cache
             if (0 <= victim) { // Found in victim cache, swap
-                --cache->totalMissReads;
-                ++cache->victimCache.totalCacheHits;
-                cacheEntryIndex = findVictimInCache(cache, reference->address);
-                cacheEntry = &cache->cacheLine[cacheEntryIndex];
-                if (cacheEntry->valid && cacheEntry->dirty) {
-                    ++cache->totalMissWrites;
+                --mainCache->totalMissReads;
+                ++victimCache->totalCacheHits;
+                if (cacheEntry->dirty) {
+                    ++mainCache->totalMissWrites;
                 }
-                swapCacheLines(cacheEntry, &cache->victimCache.cacheLine[victim]);
-                cache->victimCache.cacheLine[victim].replacementData = cacheDescription->numberOfMemoryReference;
-                setReplacementData(cacheDescription->numberOfMemoryReference, cache, cacheEntry);
+                swapCacheLines(cacheEntry, &victimCache->cacheLine[victim]);
+                setReplacementData(cacheDescription->numberOfMemoryReference, mainCache, cacheEntry);
+                setReplacementData(cacheDescription->numberOfMemoryReference, victimCache, &victimCache->cacheLine[victim]);
             } else { // Not found in victim cache
-                ++cache->victimCache.totalCacheMisses;
-                ++cache->victimCache.totalMissReads;
-                victim = findVictimInVictimCache(&cache->victimCache);
-                cacheEntryIndex = findVictimInCache(cache, reference->address);
-                cacheEntry = &cache->cacheLine[cacheEntryIndex];
-                if (cacheEntry->valid && cacheEntry->dirty) {
-                    ++cache->totalMissWrites;
+                ++victimCache->totalCacheMisses;
+                ++victimCache->totalMissReads;
+                victim = findVictimInCache(victimCache, reference->address);
+                // TODO refactor this part
+                if (cacheEntry->dirty) {
+                    ++mainCache->totalMissWrites;
                 }
-                if (cache->victimCache.cacheLine[victim].valid && cache->victimCache.cacheLine[victim].dirty) {
-                    ++cache->victimCache.totalMissWrites;
+                if (victimCache->cacheLine[victim].valid && victimCache->cacheLine[victim].dirty) {
+                    ++victimCache->totalMissWrites;
                 }
-                swapCacheLines(cacheEntry, &cache->victimCache.cacheLine[victim]);
-                cache->victimCache.cacheLine[victim].replacementData = cacheDescription->numberOfMemoryReference;
-                cacheEntry->tag = getBaseCacheAddress(cache, reference->address);
+                swapCacheLines(cacheEntry, &victimCache->cacheLine[victim]);
+                cacheEntry->tag = getBaseCacheAddress(mainCache, reference->address);
                 cacheEntry->valid = 1;
                 cacheEntry->dirty = 0;
-                setReplacementData(cacheDescription->numberOfMemoryReference, cache, cacheEntry);
+                setReplacementData(cacheDescription->numberOfMemoryReference, mainCache, cacheEntry);
+                setReplacementData(cacheDescription->numberOfMemoryReference, victimCache, &victimCache->cacheLine[victim]);
             }
         } else { // Do not look into victim cache
-            cacheEntryIndex = findVictimInCache(cache, reference->address);
-            cacheEntry = &cache->cacheLine[cacheEntryIndex];
+            cacheEntryIndex = findVictimInCache(mainCache, reference->address);
+            cacheEntry = &mainCache->cacheLine[cacheEntryIndex];
             if (cacheEntry->valid && cacheEntry->dirty) {
-                ++cache->totalMissWrites;
+                ++mainCache->totalMissWrites;
             }
-            cacheEntry->tag = getBaseCacheAddress(cache, reference->address);
+            cacheEntry->tag = getBaseCacheAddress(mainCache, reference->address);
             cacheEntry->valid = 1;
             cacheEntry->dirty = 0;
-            setReplacementData(cacheDescription->numberOfMemoryReference, cache, cacheEntry);
+            setReplacementData(cacheDescription->numberOfMemoryReference, mainCache, cacheEntry);
         }
     }
-    if (cache->replacementPolicy == LFU) {
-        checkForDecay(cacheDescription->numberOfMemoryReference, cache);
+    if (mainCache->replacementPolicy == LFU) {
+        checkForDecay(cacheDescription->numberOfMemoryReference, mainCache);
     }
     if (reference->type == STORE) {
-        if (cache->writeBack) {
+        if (mainCache->writeBack) {
             cacheEntry->dirty = 1;
         } else {
-            ++cache->totalMissWrites;
+            ++mainCache->totalMissWrites;
         }
     }
 }
@@ -295,13 +254,13 @@ void simulateReferenceToMemory(CacheDescription* cacheDescription, MemoryReferen
     ++cacheDescription->numberOfMemoryReference;
     ++cacheDescription->numberOfType[reference->type];
     // Check if the entire reference fits into just one cache line
-    if (getBaseCacheAddress(cacheDescription->cache, reference->address) == getBaseCacheAddress(cacheDescription->cache, reference->address + reference->length -1)) {
+    if (getBaseCacheAddress(cacheDescription->mainCache, reference->address) == getBaseCacheAddress(cacheDescription->mainCache, reference->address + reference->length -1)) {
         simulateReferenceToCacheLine(cacheDescription, reference);
     } else {
         MemoryReference reference1;
         MemoryReference reference2;
         reference2.type = reference->type;
-        reference2.address = getBaseCacheAddress(cacheDescription->cache, reference->address + reference->length -1);
+        reference2.address = getBaseCacheAddress(cacheDescription->mainCache, reference->address + reference->length -1);
         reference2.length = reference->address + reference->length - reference2.address;
         reference1.type = reference->type;
         reference1.address = reference->address;

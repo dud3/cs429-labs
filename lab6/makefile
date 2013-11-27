@@ -6,7 +6,7 @@ sources := $(wildcard *.$(suf))
 objects := $(addsuffix .o, $(basename $(sources)))
 ifeq ($(uname), Darwin)
 cxx := gcc-mp-4.9
-cxxflags := -g -O0 -Wall -Wextra -std=c11
+cxxflags := -g -O0 -Wall -Wextra
 python := python
 else
 cxx := gcc
