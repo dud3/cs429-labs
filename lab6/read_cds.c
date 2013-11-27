@@ -208,7 +208,7 @@ CacheDescription* readCacheDescriptionFileEntry(FILE* cacheDescriptionFile) {
         cacheDescription->victimCache->lfuDecayInterval = 0;
         cacheDescription->victimCache->name = allocateString(cacheDescription->name);
         cacheDescription->victimCache->cacheLine = 0;
-        cacheDescription->victimCache->writeBack = 1;
+        cacheDescription->victimCache->writeBack = cacheDescription->mainCache->writeBack;
         cacheDescription->victimCache->replacementPolicy = FIFO;
     }
     return cacheDescription;
