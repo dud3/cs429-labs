@@ -2,4 +2,3 @@
 
 Fall, 2013
 
-[William Young](http://www.cs.utexas.edu/~byoung)
